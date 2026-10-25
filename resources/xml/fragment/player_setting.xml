@@ -11,13 +11,13 @@
             grow="1"/>
 
     <brls:Box
-            width="460"
+            width="560"
             height="100%"
             axis="column"
             backgroundColor="@theme/brls/background">
 
         <brls:Label
-                height="24"
+                height="36"
                 margin="20"
                 fontSize="24"
                 text="@i18n/tsvitch/setting/app/playback/header"/>
@@ -39,8 +39,8 @@
                     width="auto"
                     height="auto"
                     axis="column"
-                    paddingLeft="40"
-                    paddingRight="@style/brls/tab_frame/content_padding_sides"
+                    paddingLeft="24"
+                    paddingRight="24"
                     paddingBottom="@style/brls/tab_frame/content_padding_top_bottom"
                     alignItems="stretch">
 

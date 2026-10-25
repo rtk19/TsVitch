@@ -15,28 +15,20 @@ VideoProfile::VideoProfile() {
 
 void VideoProfile::update() {
     auto mpvCore = &MPVCore::instance();
+    if(mpvCore->isPositioning())return;
 
     
-    if (mpvCore->filepath != labelUrl->getFullText()) labelUrl->setText(mpvCore->filepath);
+    auto origin=mpvCore->filepath;const auto scheme=origin.find("://");if(scheme!=std::string::npos)origin=origin.substr(0,origin.find('/',scheme+3));if(origin!=labelUrl->getFullText())labelUrl->setText(origin);
     labelSize->setText(fmt::format("{:.2f}MB", mpvCore->getInt("file-size") / 1048576.0));
     labelFormat->setText(mpvCore->getString("file-format"));
-    auto cache = mpvCore->getNodeMap("demuxer-cache-state");
-    labelCache->setText(fmt::format("{:.2f}MB ({:.1f} sec)", cache["fw-bytes"].u.int64 / 1048576.0,
-                                    mpvCore->getDouble("demuxer-cache-duration")));
-    brls::Logger::debug(
-        "total-bytes: {:.2f}MB; cache-duration: "
-        "{:.2f}; "
-        "underrun: {}; fw-bytes: {:.2f}MB; bof-cached: "
-        "{}; eof-cached: {}; file-cache-bytes: {}; "
-        "raw-input-rate: {:.2f};",
-        cache["total-bytes"].u.int64 / 1048576.0, cache["cache-duration"].u.double_, cache["underrun"].u.flag,
-        cache["fw-bytes"].u.int64 / 1048576.0, cache["bof-cached"].u.flag, cache["eof-cached"].u.flag,
-        cache["file-cache-bytes"].u.int64 / 1048576.0, cache["raw-input-rate"].u.int64 / 1048576.0);
+    auto cache=mpvCore->getNodeMap("demuxer-cache-state");
+    auto number=[&](const char* key){auto it=cache.find(key);if(it==cache.end())return 0.;const auto& n=it->second;return n.format==MPV_FORMAT_INT64?double(n.u.int64):n.format==MPV_FORMAT_DOUBLE?n.u.double_:0.;};
+    labelCache->setText(fmt::format("{:.2f} MB · {:.1f} s · {:.0f} KB/s",number("fw-bytes")/1048576.,mpvCore->getDouble("demuxer-cache-duration"),number("raw-input-rate")/1024.));
 
     
     labelVideoRes->setText(fmt::format(
         "{} x {}@{} (window: {} x {} framebuffer: {} x {})", mpvCore->getInt("video-params/w"),
-        mpvCore->getInt("video-params/h"), mpvCore->getInt("container-fps"), brls::Application::contentWidth,
+        mpvCore->getInt("video-params/h"), mpvCore->getDouble("container-fps"), brls::Application::contentWidth,
         brls::Application::contentHeight, brls::Application::windowWidth, brls::Application::windowHeight));
     labelVideoCodec->setText(mpvCore->getString("video-codec"));
     labelVideoPixel->setText(mpvCore->getString("video-params/pixelformat"));

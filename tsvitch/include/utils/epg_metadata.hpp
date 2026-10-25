@@ -1,6 +1,9 @@
 #pragma once
 #include "utils/programme.hpp"
 #include "utils/search_text.hpp"
+#include "utils/xmltv_time.hpp"
+#include <ctime>
+#include <set>
 #include <nlohmann/json.hpp>
 #include <algorithm>
 namespace tsvitch {
@@ -54,15 +57,50 @@ inline int64_t epgTimestamp(const nlohmann::json &data, const char *key) {
         auto value = epgField(data, key);
         size_t end = 0;
         auto result = std::stoll(value, &end);
-        return end == value.size() && result > 0 ? result : 0;
+        return end == value.size() && result > 0 ? (result > 100000000000LL ? result / 1000 : result) : 0;
     } catch (...) {
         return 0;
     }
+}
+inline int currentProgrammeIndex(const std::vector<Programme> &programmes, int64_t now) {
+    int result = -1;
+    for (size_t i = 0; i < programmes.size(); ++i)
+        if (programmes[i].nowPlaying && (result < 0 || programmes[i].start > programmes[result].start))
+            result = i;
+    if (result >= 0)
+        return result;
+    for (size_t i = 0; i < programmes.size(); ++i)
+        if (programmes[i].start <= now && now < programmes[i].end &&
+            (result < 0 || programmes[i].start > programmes[result].start))
+            result = i;
+    return result;
+}
+inline std::string programmeTime(const Programme &p) {
+    if (p.start <= 0 || p.end <= p.start)
+        return p.time;
+    const std::time_t start = p.start, end = p.end;
+    std::tm first{}, last{};
+    localtime_r(&start, &first);
+    localtime_r(&end, &last);
+    char a[32], b[32];
+    std::strftime(a, sizeof(a), "%d/%m  %H:%M", &first);
+    std::strftime(b, sizeof(b), "%H:%M", &last);
+    return std::string(a) + " – " + b;
+}
+inline int64_t epgDateTimestamp(std::string text) {
+    if (text.size() < 19)
+        return 0;
+    std::string digits;
+    for (size_t i = 0; i < 19; ++i)
+        if (std::isdigit(static_cast<unsigned char>(text[i])))
+            digits += text[i];
+    return digits.size() == 14 ? xmltvTimestamp(digits) : 0;
 }
 inline std::vector<Programme> parseShortEpg(const nlohmann::json &data) {
     std::vector<Programme> result;
     if (!data.is_object() || !data.contains("epg_listings") || !data["epg_listings"].is_array())
         return result;
+    std::set<std::string> seen;
     for (const auto &item : data["epg_listings"]) {
         Programme p;
         p.title = epgText(epgField(item, "title"));
@@ -71,7 +109,21 @@ inline std::vector<Programme> parseShortEpg(const nlohmann::json &data) {
         p.end = epgTimestamp(item, "stop_timestamp");
         if (!p.end)
             p.end = epgTimestamp(item, "end_timestamp");
-        p.time = epgField(item, "start") + " - " + epgField(item, "end");
+        if (!p.start)
+            p.start = epgDateTimestamp(epgField(item, "start"));
+        if (!p.end)
+            p.end = epgDateTimestamp(epgField(item, "end"));
+        for (const auto *key : {"now_playing", "is_now"})
+            if (item.contains(key)) {
+                const auto &v = item[key];
+                p.nowPlaying = p.nowPlaying ||
+                               (v.is_boolean() ? v.get<bool>()
+                                               : epgField(item, key) == "1" || epgField(item, key) == "true");
+            }
+        p.time = programmeTime(p);
+        const auto key = std::to_string(p.start) + ":" + std::to_string(p.end) + ":" + p.title;
+        if (!seen.insert(key).second)
+            continue;
         if (!p.title.empty())
             result.push_back(std::move(p));
     }

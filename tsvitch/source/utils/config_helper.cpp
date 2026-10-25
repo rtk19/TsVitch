@@ -168,6 +168,7 @@ std::unordered_map<SettingItem, ProgramOption> ProgramConfig::SETTING_MAP = {
     {SettingItem::PLAYER_BRIGHTNESS, {"player_brightness", {}, {}, 0}},
     {SettingItem::PLAYER_CONTRAST, {"player_contrast", {}, {}, 0}},
     {SettingItem::PLAYER_SATURATION, {"player_saturation", {}, {}, 0}},
+    {SettingItem::SUBTITLE_BACKGROUND, {"subtitle_background", {}, {}, 0}},
     {SettingItem::PLAYER_HUE, {"player_hue", {}, {}, 0}},
     {SettingItem::PLAYER_GAMMA, {"player_gamma", {}, {}, 0}},
     {SettingItem::MINIMUM_WINDOW_WIDTH, {"minimum_window_width", {"480"}, {480}, 0}},

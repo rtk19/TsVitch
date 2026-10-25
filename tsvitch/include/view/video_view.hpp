@@ -81,6 +81,7 @@ public:
     void toggleOSDLock();
 
     void toggleOSD();
+    void togglePlaybackInfo();
 
     void showLoading();
 

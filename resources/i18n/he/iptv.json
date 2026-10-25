@@ -93,5 +93,22 @@
   "episode_sources": "מקורות צפייה",
   "source": "מקור",
   "sources": "מקורות",
-  "epg_unavailable": "אין מידע על השידור"
+  "epg_unavailable": "אין מידע על השידור",
+  "player_options": "שמע, כתוביות וניגון",
+  "player_info": "מידע ניגון",
+  "track": "רצועה",
+  "track_error": "לא ניתן לבחור ברצועה הזאת",
+  "no_tracks": "אין רצועה פעילה",
+  "subtitle_background": "רקע לכתוביות",
+  "subtitle_size": "גודל הכתוביות",
+  "subtitle_delay": "תזמון כתוביות · לחיצה לאיפוס",
+  "subtitle_earlier": "הקדמת כתוביות",
+  "subtitle_later": "איחור כתוביות",
+  "audio_delay": "תזמון שמע",
+  "playback_speed": "מהירות ניגון",
+  "deinterlace": "הפחתת שזירה",
+  "recover_video": "שחזור תמונה · פענוח תוכנה",
+  "on_now": "משודר עכשיו",
+  "upcoming": "בהמשך",
+  "playing_archive": "ההקלטה המתנגנת"
 }

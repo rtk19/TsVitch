@@ -77,6 +77,53 @@ std::vector<Programme> programmesFor(const LiveM3u8 &channel) {
     auto found = guide.find(id);
     return found == guide.end() ? std::vector<Programme>{} : found->second;
 }
+std::string clockSource;
+int64_t clockOffset = 0;
+std::time_t clockAttempt = 0;
+bool clockLoading = false;
+std::string clockKey() {
+    auto &c = ProgramConfig::instance();
+    return c.getXtreamServerUrl() + "#" + c.getXtreamUsername();
+}
+void primeClock() {
+    auto &c = ProgramConfig::instance();
+    const auto key = clockKey();
+    const auto now = std::time(nullptr);
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (clockLoading || (clockSource == key && now - clockAttempt < 1800))
+            return;
+        clockLoading = true;
+        clockSource = key;
+        clockAttempt = now;
+        clockOffset = 0;
+    }
+    auto base = c.getXtreamServerUrl();
+    while (!base.empty() && base.back() == '/')
+        base.pop_back();
+    cpr::GetCallback(
+        [key, now](cpr::Response response) {
+            int64_t offset = 0;
+            try {
+                if (!response.error && response.status_code == 200 && response.text.size() < 1024 * 1024) {
+                    auto j = nlohmann::json::parse(response.text, nullptr, false);
+                    if (j.contains("server_info")) {
+                        auto stamp = epgTimestamp(j["server_info"], "timestamp_now");
+                        if (stamp > 0)
+                            offset = stamp - (now + std::time(nullptr)) / 2;
+                    }
+                }
+            } catch (...) {
+            }
+            std::lock_guard<std::mutex> lock(mutex);
+            clockLoading = false;
+            if (clockSource == key)
+                clockOffset = offset;
+        },
+        cpr::Url{base + "/player_api.php?username=" + encodeUrlComponent(c.getXtreamUsername()) +
+                 "&password=" + encodeUrlComponent(c.getXtreamPassword())},
+        cpr::Timeout{12000}, HTTP::HEADERS, HTTP::VERIFY, HTTP::PROXIES);
+}
 struct ShortGuide {
     std::vector<Programme> programmes;
     std::time_t attempted = 0, updated = 0, touched = 0;
@@ -314,20 +361,33 @@ void loadGuide(const LiveM3u8 &channel, bool show) {
 }
 void showXmltvGuide(const LiveM3u8 &channel) { loadGuide(channel, true); }
 void primeProgrammeGuide(const LiveM3u8 &channel) {
-    if (useShortGuide())
+    if (useShortGuide()) {
+        primeClock();
         primeShortGuide(channel);
-    else
+    } else
         loadGuide(channel, false);
 }
-Programme currentProgrammeData(const LiveM3u8 &channel) {
+int64_t programmeNow() {
     const auto now = std::time(nullptr);
+    if (ProgramConfig::instance().getIntOption(SettingItem::IPTV_MODE) != 1)
+        return now;
+    std::lock_guard<std::mutex> lock(mutex);
+    return now + (clockSource == clockKey() ? clockOffset : 0);
+}
+Programme currentProgrammeData(const LiveM3u8 &channel) {
+    const auto now = programmeNow();
     if (useShortGuide()) {
         std::lock_guard<std::mutex> lock(mutex);
         auto found = shortGuides.find(shortGuideKey(channel));
-        if (found != shortGuides.end())
-            for (const auto &p : found->second.programmes)
-                if (p.start <= now && now < p.end)
-                    return p;
+        if (found != shortGuides.end()) {
+            auto programmes = found->second.programmes;
+            if (std::time(nullptr) - found->second.updated > 120)
+                for (auto &p : programmes)
+                    p.nowPlaying = false;
+            const int index = currentProgrammeIndex(programmes, now);
+            if (index >= 0)
+                return programmes[index];
+        }
         return {};
     }
     for (const auto &p : programmesFor(channel))

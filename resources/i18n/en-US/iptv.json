@@ -93,5 +93,22 @@
   "episode_sources": "Playback sources",
   "source": "Source",
   "sources": "sources",
-  "epg_unavailable": "EPG unavailable"
+  "epg_unavailable": "EPG unavailable",
+  "player_options": "Audio, subtitles and playback",
+  "player_info": "Playback info",
+  "track": "Track",
+  "track_error": "Could not select this track",
+  "no_tracks": "No active track",
+  "subtitle_background": "Subtitle background",
+  "subtitle_size": "Subtitle size",
+  "subtitle_delay": "Subtitle delay · press to reset",
+  "subtitle_earlier": "Subtitles earlier",
+  "subtitle_later": "Subtitles later",
+  "audio_delay": "Audio delay",
+  "playback_speed": "Playback speed",
+  "deinterlace": "Deinterlace",
+  "recover_video": "Recover video · software decoder",
+  "on_now": "Now",
+  "upcoming": "Upcoming",
+  "playing_archive": "Playing recording"
 }

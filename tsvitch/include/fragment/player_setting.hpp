@@ -3,6 +3,7 @@
 #pragma once
 
 #include <borealis/core/box.hpp>
+#include <memory>
 #include <borealis/core/bind.hpp>
 
 class ButtonClose;
@@ -33,7 +34,11 @@ public:
 
     static View* create();
 
+    int64_t optionsBlockedUntil=0;
     void setupCommonSetting();
+    void setupPlaybackOptions();
+    void updatePlaybackOptions();
+    std::shared_ptr<bool> alive=std::make_shared<bool>(true);
 
 private:
     BRLS_BIND(ButtonClose, closebtn, "button/close");

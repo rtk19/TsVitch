@@ -72,3 +72,15 @@ inline LiveM3u8 archiveMedia(const LiveM3u8& channel,const std::string& title,co
     media.title=title;media.description=description;media.contentType="catchup";media.archiveStart=start;media.archiveEnd=end;return media;
 }
 }
+
+namespace tsvitch {
+struct ArchiveSeekPlan {std::string url;double offset=0,start=0,end=0,target=0;};
+inline ArchiveSeekPlan archiveSeekPlan(const LiveM3u8& media,double seconds,int64_t now){
+    ArchiveSeekPlan plan;if(media.archiveEnd<=media.archiveStart||media.liveUrl.empty())return plan;
+    seconds=std::clamp(seconds,0.0,double(media.archiveEnd-media.archiveStart)-.1);
+    auto source=media;source.url=media.liveUrl;source.contentType="live";
+    int64_t base=media.archiveStart+static_cast<int64_t>(seconds);
+    if(media.catchupMode=="xc"&&media.catchupSource.empty()){const auto corrected=base+media.catchupCorrection;base=corrected-corrected%60-media.catchupCorrection;}
+    plan.url=catchupUrl(source,base,media.archiveEnd,now);plan.offset=double(base-media.archiveStart);plan.start=seconds-plan.offset;plan.end=media.archiveEnd-base;plan.target=seconds;return plan;
+}
+}

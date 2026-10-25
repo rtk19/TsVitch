@@ -21,6 +21,7 @@
 #include "view/auto_tab_frame.hpp"
 #include "view/vod_grid.hpp"
 #include "../../tests/ui_smoke_steps.hpp"
+#include "../../tests/player_smoke_steps.hpp"
 #endif
 
 #ifdef IOS
@@ -29,11 +30,12 @@
 
 int main(int argc, char* argv[]) {
 #ifndef __SWITCH__
-    bool uiSmokeTest=false,uiSmokeCacheOnly=false;
+    bool uiSmokeTest=false,uiSmokeCacheOnly=false,playerSmokeTest=false;
 #endif
     if (argc > 0 && argv[0]) tsvitch::setApplicationPath(argv[0]);
     for (int i = 1; i < argc; i++) {
 #ifndef __SWITCH__
+        if(std::strcmp(argv[i],"--player-smoke-test")==0){playerSmokeTest=true;uiSmokeTest=true;}
         if (std::strcmp(argv[i], "--ui-smoke-test") == 0) uiSmokeTest=true;
         if (std::strcmp(argv[i], "--ui-smoke-cache") == 0) {uiSmokeTest=true;uiSmokeCacheOnly=true;}
 #endif
@@ -47,7 +49,7 @@ int main(int argc, char* argv[]) {
             MPVCore::TERMINAL = true;
         } else if (std::strcmp(argv[i], "-o") == 0) {
             const char* path = (i + 1 < argc) ? argv[++i] : APP_NAME ".log";
-            brls::Logger::setLogOutput(std::fopen(path, "w+"));
+            auto* output=std::fopen(path,"w+");if(output)std::setvbuf(output,nullptr,_IOLBF,0);brls::Logger::setLogOutput(output);
         }
     }
 
@@ -148,7 +150,7 @@ int main(int argc, char* argv[]) {
 #ifndef __SWITCH__
         // Exercise the production screen lifecycle under Xvfb, without a Switch or subscription.
         if(uiSmokeTest && std::chrono::steady_clock::now()>=smokeNext) {
-            if(uiSmokeStep(smokeStep,uiSmokeCacheOnly)){++smokeStep;smokeNext=std::chrono::steady_clock::now()+std::chrono::milliseconds(600);}
+            if(playerSmokeTest?playerSmokeStep(smokeStep):uiSmokeStep(smokeStep,uiSmokeCacheOnly)){++smokeStep;smokeNext=std::chrono::steady_clock::now()+std::chrono::milliseconds(600);}
         }
 #endif
     }

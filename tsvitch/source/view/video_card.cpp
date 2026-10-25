@@ -71,7 +71,7 @@ void RecyclingGridItemLiveVideoCard::updateProgramme() {
     labelProgramme->setText(programme.title.empty() ? brls::getStr("iptv/epg_unavailable") : programme.title);
     std::string time;
     if (programme.start > 0 && programme.end > programme.start) {
-        const auto now = std::time(nullptr);
+        const auto now = tsvitch::programmeNow();
         programmeFraction =
             std::clamp(float(now - programme.start) / (programme.end - programme.start), 0.f, 1.f);
         std::time_t begin = programme.start, end = programme.end;

@@ -399,7 +399,7 @@ void VideoView::requestSeeking(int seek, int delay) {
         seek     = (int64_t)this->playbackPosition() * -1;
     } else if (progress > 1) {
         progress = 1;
-        seek     = getRealDuration();
+        seek     = static_cast<int>(getRealDuration()-this->playbackPosition());
     }
 
     showOSD(false);
@@ -451,6 +451,7 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float width, float height
     bool drawOSD   = current < this->osdLastShowTime;
 
     mpvCore->draw(brls::Rect(x, y, width, height), alpha);
+    if(mpvCore->isPositioning()&&osdCenterBox->getVisibility()!=brls::Visibility::VISIBLE)showLoading();
 
     if (HIGHLIGHT_PROGRESS_BAR && (!drawOSD || is_osd_lock)) {
         drawHighlightProgress(vg, x, y + height, width, alpha);
@@ -1016,7 +1017,7 @@ void VideoView::registerMpvEvent() {
                 break;
             case MpvEventEnum::UPDATE_PROGRESS:
                 // Advancing playback is authoritative even if a backend misses a restart event.
-                if (!mpvCore->video_seeking && mpvCore->isPlaying()) this->hideLoading();
+                if (!mpvCore->video_seeking && !mpvCore->isPositioning() && mpvCore->isPlaying()) this->hideLoading();
                 this->setPlaybackTime(tsvitch::sec2Time(this->playbackPosition()));
                 this->setProgress((float)playbackPosition() / getRealDuration());
                 break;
@@ -1100,3 +1101,5 @@ double VideoView::playbackPosition() const {
 float VideoView::getRealDuration() { return archiveDuration>0?archiveDuration:real_duration>0?real_duration:mpvCore->duration; }
 
 void VideoView::setOnEndCallback(std::function<void()> callback) { this->onEndCallback = callback; }
+
+void VideoView::togglePlaybackInfo(){const bool show=videoProfile->getVisibility()!=brls::Visibility::VISIBLE;videoProfile->setVisibility(show?brls::Visibility::VISIBLE:brls::Visibility::INVISIBLE);if(show)videoProfile->update();}

@@ -31,20 +31,27 @@
 using namespace brls::literals;
 
 class DynamicGroupChannels : public RecyclingGridItem {
-public:
-    explicit DynamicGroupChannels(const std::string& xml) {
+  public:
+    explicit DynamicGroupChannels(const std::string &xml) {
         this->inflateFromXMLRes(xml);
-        auto theme    = brls::Application::getTheme();
+        auto theme = brls::Application::getTheme();
         selectedColor = theme.getColor("color/tsvitch");
-        fontColor     = theme.getColor("brls/text");
+        fontColor = theme.getColor("brls/text");
     }
 
-    void setTitle(const std::string& title) { this->labelTitle->setText(title); }
-    void setPinAction(bool pinned,std::function<void()> action) {
-        const auto label=brls::getStr(pinned?"iptv/unpin_category":"iptv/pin_category");
-        registerAction(label,brls::BUTTON_Y,[action](brls::View*){action();return true;});
-        registerAction(brls::getStr("iptv/options"),brls::BUTTON_X,[action,label](brls::View*){
-            auto* dialog=new brls::Dialog(label);dialog->addButton(label,action);dialog->addButton(brls::getStr("hints/back"),[]{});dialog->open();return true;
+    void setTitle(const std::string &title) { this->labelTitle->setText(title); }
+    void setPinAction(bool pinned, std::function<void()> action) {
+        const auto label = brls::getStr(pinned ? "iptv/unpin_category" : "iptv/pin_category");
+        registerAction(label, brls::BUTTON_Y, [action](brls::View *) {
+            action();
+            return true;
+        });
+        registerAction(brls::getStr("iptv/options"), brls::BUTTON_X, [action, label](brls::View *) {
+            auto *dialog = new brls::Dialog(label);
+            dialog->addButton(label, action);
+            dialog->addButton(brls::getStr("hints/back"), [] {});
+            dialog->open();
+            return true;
         });
     }
 
@@ -57,94 +64,115 @@ public:
 
     void cacheForReuse() override {}
 
-    static RecyclingGridItem* create(const std::string& xml = "xml/views/group_channel_dynamic.xml") {
+    static RecyclingGridItem *create(const std::string &xml = "xml/views/group_channel_dynamic.xml") {
         return new DynamicGroupChannels(xml);
     }
 
-private:
+  private:
     BRLS_BIND(brls::Label, labelTitle, "title");
     NVGcolor selectedColor{};
     NVGcolor fontColor{};
 };
 
 class DataSourceUpList : public RecyclingGridDataSource {
-public:
-    using OnGroupSelected = std::function<void(const std::string&)>;
-    explicit DataSourceUpList(std::vector<std::string> result, OnGroupSelected cb = nullptr,std::function<void(size_t)> reordered={})
-        : list(std::move(result)), onGroupSelected(cb),reordered(std::move(reordered)),scope(tsvitch::librarySourceKey()) {}
+  public:
+    using OnGroupSelected = std::function<void(const std::string &)>;
+    explicit DataSourceUpList(std::vector<std::string> result, OnGroupSelected cb = nullptr,
+                              std::function<void(size_t)> reordered = {})
+        : list(std::move(result)), onGroupSelected(cb), reordered(std::move(reordered)),
+          scope(tsvitch::librarySourceKey()) {}
 
-    RecyclingGridItem* cellForRow(RecyclingGrid* recycler, size_t index) override {
-        DynamicGroupChannels* item = (DynamicGroupChannels*)recycler->dequeueReusableCell("Cell");
-        const auto group=this->list[index];const bool pinned=tsvitch::libraryPreferences().pinned(scope,group);
-        item->setTitle(pinned?brls::getStr("iptv/pinned")+" · "+group:group);
-        item->setPinAction(pinned,[this,recycler,group]{togglePin(recycler,group);});
-        item->setSelected(index == selectedIndex);  // Imposta sempre la selezione!
+    RecyclingGridItem *cellForRow(RecyclingGrid *recycler, size_t index) override {
+        DynamicGroupChannels *item = (DynamicGroupChannels *)recycler->dequeueReusableCell("Cell");
+        const auto group = this->list[index];
+        const bool pinned = tsvitch::libraryPreferences().pinned(scope, group);
+        item->setTitle(pinned ? brls::getStr("iptv/pinned") + " · " + group : group);
+        item->setPinAction(pinned, [this, recycler, group] { togglePin(recycler, group); });
+        item->setSelected(index == selectedIndex); // Imposta sempre la selezione!
         return item;
     }
 
     size_t getItemCount() override { return list.size(); }
 
-    void setSelectedIndex(RecyclingGrid* recycler, size_t index) {
+    void setSelectedIndex(RecyclingGrid *recycler, size_t index) {
         brls::Logger::debug("setSelectedIndex: {}", index);
-        if (index >= list.size()) return;
+        if (index >= list.size())
+            return;
         selectedIndex = index;
-        auto* item    = dynamic_cast<DynamicGroupChannels*>(recycler->getGridItemByIndex(index));
-        if (!item) return;
+        auto *item = dynamic_cast<DynamicGroupChannels *>(recycler->getGridItemByIndex(index));
+        if (!item)
+            return;
         item->setSelected(true);
 
         // Salva l'indice selezionato
         ProgramConfig::instance().setSettingItem(SettingItem::GROUP_SELECTED_INDEX, static_cast<int>(index));
-        tsvitch::libraryPreferences().select(scope,list[index]);
-        if(reordered)reordered(index);
+        tsvitch::libraryPreferences().select(scope, list[index]);
+        if (reordered)
+            reordered(index);
 
-        if (onGroupSelected) onGroupSelected(list[index]);
+        if (onGroupSelected)
+            onGroupSelected(list[index]);
     }
 
-    void onItemSelected(RecyclingGrid* recycler, size_t index) override {
+    void onItemSelected(RecyclingGrid *recycler, size_t index) override {
         brls::Logger::debug("onItemSelected: {}", index);
-        std::vector<RecyclingGridItem*>& items = recycler->getGridItems();
-        for (auto& i : items) {
-            auto* cell = dynamic_cast<DynamicGroupChannels*>(i);
-            if (cell) cell->setSelected(false);
+        std::vector<RecyclingGridItem *> &items = recycler->getGridItems();
+        for (auto &i : items) {
+            auto *cell = dynamic_cast<DynamicGroupChannels *>(i);
+            if (cell)
+                cell->setSelected(false);
         }
 
         selectedIndex = index;
 
-        auto* item = dynamic_cast<DynamicGroupChannels*>(recycler->getGridItemByIndex(index));
-        if (!item) return;
+        auto *item = dynamic_cast<DynamicGroupChannels *>(recycler->getGridItemByIndex(index));
+        if (!item)
+            return;
         item->setSelected(true);
 
         // Salva l'indice selezionato
         ProgramConfig::instance().setSettingItem(SettingItem::GROUP_SELECTED_INDEX, static_cast<int>(index));
-        tsvitch::libraryPreferences().select(scope,list[index]);
-        if(reordered)reordered(index);
+        tsvitch::libraryPreferences().select(scope, list[index]);
+        if (reordered)
+            reordered(index);
 
-        if (onGroupSelected) onGroupSelected(list[index]);
+        if (onGroupSelected)
+            onGroupSelected(list[index]);
     }
 
-    void appendData(const std::vector<std::string>& data) {
+    void appendData(const std::vector<std::string> &data) {
         this->list.insert(this->list.end(), data.begin(), data.end());
     }
 
     void clearData() override { this->list.clear(); }
 
-    const std::string& getGroupNameByIndex(size_t index) const {
+    const std::string &getGroupNameByIndex(size_t index) const {
         static std::string empty;
-        if (index < list.size()) return list[index];
+        if (index < list.size())
+            return list[index];
         return empty;
     }
 
-private:
-    void togglePin(RecyclingGrid* recycler,const std::string& group) {
-        auto& preferences=tsvitch::libraryPreferences();
-        const auto selected=selectedIndex<list.size()?list[selectedIndex]:std::string{};
-        if(!preferences.togglePin(scope,group)){brls::Application::notify(brls::getStr("iptv/preferences_error"));return;}
-        preferences.sortGroups(scope,list);
-        auto found=std::find(list.begin(),list.end(),selected);selectedIndex=found==list.end()?0:size_t(found-list.begin());
-        if(reordered)reordered(selectedIndex);
-        ProgramConfig::instance().setSettingItem(SettingItem::GROUP_SELECTED_INDEX,static_cast<int>(selectedIndex));
-        const auto focus=std::find(list.begin(),list.end(),group);const auto index=size_t(focus-list.begin());
-        recycler->setDefaultCellFocus(index);recycler->reloadData();recycler->selectRowAt(index,false);
+  private:
+    void togglePin(RecyclingGrid *recycler, const std::string &group) {
+        auto &preferences = tsvitch::libraryPreferences();
+        const auto selected = selectedIndex < list.size() ? list[selectedIndex] : std::string{};
+        if (!preferences.togglePin(scope, group)) {
+            brls::Application::notify(brls::getStr("iptv/preferences_error"));
+            return;
+        }
+        preferences.sortGroups(scope, list);
+        auto found = std::find(list.begin(), list.end(), selected);
+        selectedIndex = found == list.end() ? 0 : size_t(found - list.begin());
+        if (reordered)
+            reordered(selectedIndex);
+        ProgramConfig::instance().setSettingItem(SettingItem::GROUP_SELECTED_INDEX,
+                                                 static_cast<int>(selectedIndex));
+        const auto focus = std::find(list.begin(), list.end(), group);
+        const auto index = size_t(focus - list.begin());
+        recycler->setDefaultCellFocus(index);
+        recycler->reloadData();
+        recycler->selectRowAt(index, false);
         brls::Application::giveFocus(recycler->getDefaultFocus());
     }
     std::vector<std::string> list;
@@ -183,10 +211,10 @@ const std::string GridMainAreaCellContentXML = R"xml(
 )xml";
 
 class GridMainAreaCell : public RecyclingGridItem {
-public:
+  public:
     GridMainAreaCell() { this->inflateFromXMLString(GridMainAreaCellContentXML); }
 
-    void setData(const std::string& name, const std::string& pic) {
+    void setData(const std::string &name, const std::string &pic) {
         this->title->setText(name);
         this->title->setTextColor(fontColor);
 
@@ -207,53 +235,86 @@ public:
 
     void cacheForReuse() override { ImageHelper::clear(this->image); }
 
-    static RecyclingGridItem* create() { return new GridMainAreaCell(); }
+    static RecyclingGridItem *create() { return new GridMainAreaCell(); }
 
-protected:
+  protected:
     BRLS_BIND(brls::Label, title, "area/title");
     BRLS_BIND(brls::Image, image, "area/avatar");
 
     NVGcolor selectedColor = brls::Application::getTheme().getColor("color/tsvitch");
-    NVGcolor fontColor     = brls::Application::getTheme().getColor("brls/text");
+    NVGcolor fontColor = brls::Application::getTheme().getColor("brls/text");
 };
 
 class DataSourceLiveVideoList : public RecyclingGridDataSource {
-public:
-    explicit DataSourceLiveVideoList(const tsvitch::LiveM3u8ListResult& result) : videoList(result) {}
-    RecyclingGridItem* cellForRow(RecyclingGrid* recycler, size_t index) override {
-        tsvitch::LiveM3u8& r = this->videoList[index];
+  public:
+    explicit DataSourceLiveVideoList(const tsvitch::LiveM3u8ListResult &result,
+                                     std::shared_ptr<std::atomic<bool>> valid = {})
+        : videoList(result), valid(std::move(valid)) {}
+    RecyclingGridItem *cellForRow(RecyclingGrid *recycler, size_t index) override {
+        tsvitch::LiveM3u8 &r = this->videoList[index];
         // brls::Logger::info("cellForRow: {} [{}]", r.title, index);
-        RecyclingGridItemLiveVideoCard* item = (RecyclingGridItemLiveVideoCard*)recycler->dequeueReusableCell("Cell");
+        RecyclingGridItemLiveVideoCard *item =
+            (RecyclingGridItemLiveVideoCard *)recycler->dequeueReusableCell("Cell");
         item->setChannel(r);
-        item->registerAction(brls::getStr("iptv/s24"), brls::BUTTON_LT, [channel = r](brls::View*) {
-            tsvitch::showProgrammeInfo(channel); return true;
+        item->registerAction(brls::getStr("iptv/s24"), brls::BUTTON_LT, [channel = r](brls::View *) {
+            tsvitch::showProgrammeInfo(channel);
+            return true;
         });
         return item;
     }
 
     size_t getItemCount() override { return videoList.size(); }
 
-    void onItemSelected(RecyclingGrid* recycler, size_t index) override {
+    void onItemSelected(RecyclingGrid *recycler, size_t index) override {
+        if (index >= videoList.size())
+            return;
+        recycler->setDefaultCellFocus(index);
+        tsvitch::lastLiveChannelUrl() = videoList[index].url;
         HistoryManager::get()->add(videoList[index]);
-        Intent::openLive(videoList, index, [recycler]() { recycler->reloadData(); });
+        Intent::openLive(videoList, index, [recycler, valid = valid] {
+            if (valid && !valid->load())
+                return;
+            auto *source = dynamic_cast<DataSourceLiveVideoList *>(recycler->getDataSource());
+            if (!source)
+                return;
+            size_t index = std::min(recycler->getDefaultCellFocus(),
+                                    source->videoList.empty() ? size_t(0) : source->videoList.size() - 1);
+            for (size_t i = 0; i < source->videoList.size(); ++i)
+                if (source->videoList[i].url == tsvitch::lastLiveChannelUrl()) {
+                    index = i;
+                    break;
+                }
+            recycler->setDefaultCellFocus(index);
+            recycler->reloadData();
+            recycler->selectRowAt(index, false);
+            if (!brls::Application::getActivitiesStack().empty())
+                brls::Application::giveFocus(recycler->getDefaultFocus());
+        });
     }
 
-    void appendData(const tsvitch::LiveM3u8ListResult& data) {
+    void appendData(const tsvitch::LiveM3u8ListResult &data) {
         this->videoList.insert(this->videoList.end(), data.begin(), data.end());
     }
 
     void clearData() override { this->videoList.clear(); }
 
-private:
+  private:
     tsvitch::LiveM3u8ListResult videoList;
+    std::shared_ptr<std::atomic<bool>> valid;
 };
 
 HomeLive::HomeLive() {
     this->inflateFromXMLRes("xml/fragment/home_live.xml");
-    searchField->registerClickAction([this](brls::View*){search();return true;});
-    auto reload=[this](brls::View*){requestLiveList();return true;};
-    static_cast<IconButton*>(getView("home/refresh"))->registerClickAction(reload);
-    registerAction(brls::getStr("iptv/refresh_short"),brls::BUTTON_RB,reload);
+    searchField->registerClickAction([this](brls::View *) {
+        search();
+        return true;
+    });
+    auto reload = [this](brls::View *) {
+        requestLiveList();
+        return true;
+    };
+    static_cast<IconButton *>(getView("home/refresh"))->registerClickAction(reload);
+    registerAction(brls::getStr("iptv/refresh_short"), brls::BUTTON_RB, reload);
     brls::Logger::info("Fragment HomeLive: constructor called");
 
     // Inizializza il flag di validità
@@ -283,7 +344,7 @@ HomeLive::HomeLive() {
 
         ChannelManager::get()->remove();
         this->requestLiveList();
-        //reset index group
+        // reset index group
         this->selectGroupIndex(0);
     });
 
@@ -298,14 +359,15 @@ HomeLive::HomeLive() {
 
         ChannelManager::get()->remove();
         this->requestLiveList();
-        //reset index group
+        // reset index group
         this->selectGroupIndex(0);
     });
 
     // Sottoscrivi all'evento di cambio Xtream
-    OnXtreamChanged.subscribe([this](const XtreamData& xtreamData) {
-        brls::Logger::debug("OnXtreamChanged: url={}, username={}, showing skeleton and requesting channel list",
-                           xtreamData.url, xtreamData.username);
+    OnXtreamChanged.subscribe([this](const XtreamData &xtreamData) {
+        brls::Logger::debug(
+            "OnXtreamChanged: url={}, username={}, showing skeleton and requesting channel list",
+            xtreamData.url, xtreamData.username);
         // Mostra lo skeleton per indicare che stiamo caricando
         brls::Threading::sync([this]() {
             recyclingGrid->showSkeleton();
@@ -314,7 +376,7 @@ HomeLive::HomeLive() {
 
         ChannelManager::get()->remove();
         this->requestLiveList();
-        //reset index group
+        // reset index group
         this->selectGroupIndex(0);
     });
 
@@ -351,7 +413,8 @@ HomeLive::HomeLive() {
                 }
 
                 if (!cachedChannels.empty()) {
-                    brls::Logger::info("HomeLive: Using valid Xtream cache with {} channels", cachedChannels.size());
+                    brls::Logger::info("HomeLive: Using valid Xtream cache with {} channels",
+                                       cachedChannels.size());
                     this->onLiveList(cachedChannels, false);
                 } else {
                     brls::Logger::info("HomeLive: Xtream cache invalid/empty, requesting fresh data");
@@ -375,7 +438,8 @@ HomeLive::HomeLive() {
 
             // Cache più lunga per M3U8 (1 mese) perché cambia meno frequentemente
             auto cachedChannels = ChannelManager::get()->loadIfValid();
-            brls::Logger::info("HomeLive: Smart cache check completed, found {} channels", cachedChannels.size());
+            brls::Logger::info("HomeLive: Smart cache check completed, found {} channels",
+                               cachedChannels.size());
 
             brls::sync([this, cachedChannels, validityFlag]() {
                 // Controlla di nuovo la validità prima di aggiornare l'UI
@@ -385,10 +449,12 @@ HomeLive::HomeLive() {
                 }
 
                 if (!cachedChannels.empty()) {
-                    brls::Logger::info("HomeLive constructor: Using valid M3U8 cache ({} channels found)", cachedChannels.size());
+                    brls::Logger::info("HomeLive constructor: Using valid M3U8 cache ({} channels found)",
+                                       cachedChannels.size());
                     this->onLiveList(cachedChannels, false);
                 } else {
-                    brls::Logger::info("HomeLive constructor: M3U8 cache is invalid or empty, requesting fresh channels");
+                    brls::Logger::info(
+                        "HomeLive constructor: M3U8 cache is invalid or empty, requesting fresh channels");
                     this->requestLiveList();
                 }
                 isInitialLoadInProgress = false; // Reset flag quando completato
@@ -397,14 +463,14 @@ HomeLive::HomeLive() {
     }
 }
 
-void HomeLive::onError(const std::string& error) {
+void HomeLive::onError(const std::string &error) {
     brls::Logger::error("Fragment HomeLive: onError: {}", error);
     brls::sync([this, error]() {
         this->recyclingGrid->setError(error);
         this->upRecyclingGrid->setVisibility(brls::Visibility::GONE);
     });
 
-    //dialog to show error
+    // dialog to show error
     auto dialog = new brls::Dialog("hints/network_error"_i18n);
     dialog->addButton("hints/back"_i18n, []() {});
     dialog->open();
@@ -452,7 +518,8 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
     // Meglio bloccare 600ms che aspettare 36 secondi!
     auto isValidFlag = validityFlag;
     brls::sync([this, isValidFlag, firstLoad]() {
-        if (!isValidFlag->load()) return;
+        if (!isValidFlag->load())
+            return;
 
         auto grouping_start = std::chrono::high_resolution_clock::now();
 
@@ -471,30 +538,34 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
 
         std::vector<std::string> groupTitles;
         groupTitles.reserve(groupIndices.size());
-        for (const auto& pair : groupIndices) {
+        for (const auto &pair : groupIndices) {
             groupTitles.push_back(pair.first);
         }
 
         // Ordina alfabeticamente
-        const auto scope=tsvitch::librarySourceKey();
-        tsvitch::libraryPreferences().sortGroups(scope,groupTitles);
+        const auto scope = tsvitch::librarySourceKey();
+        tsvitch::libraryPreferences().sortGroups(scope, groupTitles);
 
         auto grouping_end = std::chrono::high_resolution_clock::now();
-        auto grouping_duration = std::chrono::duration_cast<std::chrono::milliseconds>(grouping_end - grouping_start);
-        brls::Logger::info("HomeLive: Grouping completed in {}ms - Found {} groups", grouping_duration.count(), groupTitles.size());
+        auto grouping_duration =
+            std::chrono::duration_cast<std::chrono::milliseconds>(grouping_end - grouping_start);
+        brls::Logger::info("HomeLive: Grouping completed in {}ms - Found {} groups",
+                           grouping_duration.count(), groupTitles.size());
 
         // Leggi lastIndex dal config
         int lastIndex = ProgramConfig::instance().getSettingItem(SettingItem::GROUP_SELECTED_INDEX, 0);
-        if (lastIndex < 0 || lastIndex >= (int)groupTitles.size()) lastIndex = 0;
-        const auto selected=tsvitch::libraryPreferences().selected(scope);
-        auto selection=std::find(groupTitles.begin(),groupTitles.end(),selected);
-        if(selection!=groupTitles.end())lastIndex=int(selection-groupTitles.begin());
+        if (lastIndex < 0 || lastIndex >= (int)groupTitles.size())
+            lastIndex = 0;
+        const auto selected = tsvitch::libraryPreferences().selected(scope);
+        auto selection = std::find(groupTitles.begin(), groupTitles.end(), selected);
+        if (selection != groupTitles.end())
+            lastIndex = int(selection - groupTitles.begin());
         std::string selectedGroup = groupTitles.empty() ? "" : groupTitles[lastIndex];
 
         // Prepara il gruppo selezionato
         tsvitch::LiveM3u8ListResult filtered;
         if (!selectedGroup.empty() && groupIndices.count(selectedGroup)) {
-            const auto& indices = groupIndices[selectedGroup];
+            const auto &indices = groupIndices[selectedGroup];
             filtered.reserve(indices.size());
             for (size_t idx : indices) {
                 filtered.push_back(this->channelsList[idx]);
@@ -515,31 +586,37 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
         if (filtered.empty())
             recyclingGrid->setEmpty();
         else
-            recyclingGrid->setDataSource(new DataSourceLiveVideoList(std::move(filtered)));
+            recyclingGrid->setDataSource(new DataSourceLiveVideoList(std::move(filtered), validityFlag));
 
         // Setup UI gruppi
         if (groupTitles.size() > 1) {
             upRecyclingGrid->setVisibility(brls::Visibility::VISIBLE);
-            auto* upList = new DataSourceUpList(groupTitles, [this](const std::string& group) {
-                tsvitch::LiveM3u8ListResult filtered;
-                {
-                    std::lock_guard<std::mutex> lock(groupCacheMutex);
-                    if (groupCache.count(group)) {
-                        filtered = groupCache[group];
-                        brls::Logger::debug("HomeLive: Using cached group '{}' with {} channels", group, filtered.size());
-                    } else {
-                        brls::Logger::warning("HomeLive: Cache miss for group '{}', filtering on-demand", group);
-                        for (const auto& item : this->channelsList) {
-                            if (item.groupTitle == group) filtered.push_back(item);
+            auto *upList = new DataSourceUpList(
+                groupTitles,
+                [this](const std::string &group) {
+                    tsvitch::LiveM3u8ListResult filtered;
+                    {
+                        std::lock_guard<std::mutex> lock(groupCacheMutex);
+                        if (groupCache.count(group)) {
+                            filtered = groupCache[group];
+                            brls::Logger::debug("HomeLive: Using cached group '{}' with {} channels", group,
+                                                filtered.size());
+                        } else {
+                            brls::Logger::warning("HomeLive: Cache miss for group '{}', filtering on-demand",
+                                                  group);
+                            for (const auto &item : this->channelsList) {
+                                if (item.groupTitle == group)
+                                    filtered.push_back(item);
+                            }
+                            groupCache[group] = filtered;
                         }
-                        groupCache[group] = filtered;
                     }
-                }
-                if (filtered.empty())
-                    recyclingGrid->setEmpty();
-                else
-                    recyclingGrid->setDataSource(new DataSourceLiveVideoList(filtered));
-            },[this](size_t index){this->selectedGroupIndex=static_cast<int>(index);});
+                    if (filtered.empty())
+                        recyclingGrid->setEmpty();
+                    else
+                        recyclingGrid->setDataSource(new DataSourceLiveVideoList(filtered, validityFlag));
+                },
+                [this](size_t index) { this->selectedGroupIndex = static_cast<int>(index); });
             upRecyclingGrid->setDataSource(upList);
             this->selectGroupIndex(static_cast<size_t>(lastIndex));
         } else {
@@ -547,20 +624,23 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
         }
 
         // Precarica gli altri gruppi in background - IN UN THREAD ASYNC SEPARATO per non bloccare l'UI
-        brls::Threading::async([this, groupTitles = std::move(groupTitles), groupIndices = std::move(groupIndices),
-                                selectedGroup, isValidFlag]() {
-            if (groupTitles.size() <= 1) return;
+        brls::Threading::async([this, groupTitles = std::move(groupTitles),
+                                groupIndices = std::move(groupIndices), selectedGroup, isValidFlag]() {
+            if (groupTitles.size() <= 1)
+                return;
 
             auto preload_start = std::chrono::high_resolution_clock::now();
             size_t groupsProcessed = 0;
 
-            for (const auto& group : groupTitles) {
-                if (!isValidFlag->load()) return;
-                if (group == selectedGroup) continue;
+            for (const auto &group : groupTitles) {
+                if (!isValidFlag->load())
+                    return;
+                if (group == selectedGroup)
+                    continue;
 
                 tsvitch::LiveM3u8ListResult filteredBg;
                 if (groupIndices.count(group)) {
-                    const auto& indices = groupIndices.at(group);
+                    const auto &indices = groupIndices.at(group);
                     filteredBg.reserve(indices.size());
 
                     for (size_t idx : indices) {
@@ -582,19 +662,22 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
             }
 
             auto preload_end = std::chrono::high_resolution_clock::now();
-            auto preload_duration = std::chrono::duration_cast<std::chrono::milliseconds>(preload_end - preload_start);
-            brls::Logger::info("HomeLive: Background group preloading completed in {}ms ({} groups)", preload_duration.count(), groupsProcessed);
+            auto preload_duration =
+                std::chrono::duration_cast<std::chrono::milliseconds>(preload_end - preload_start);
+            brls::Logger::info("HomeLive: Background group preloading completed in {}ms ({} groups)",
+                               preload_duration.count(), groupsProcessed);
         });
 
         // Salva in background se firstLoad (non blocca UI)
         if (firstLoad) {
-            brls::Logger::info("HomeLive: First load detected, will save {} channels with timestamp (async)", this->channelsList.size());
+            brls::Logger::info("HomeLive: First load detected, will save {} channels with timestamp (async)",
+                               this->channelsList.size());
             auto toSave = this->channelsList;
             brls::Threading::async([data = std::move(toSave)]() {
                 try {
                     ChannelManager::get()->saveWithTimestamp(data);
                     brls::Logger::info("HomeLive: Async saveWithTimestamp completed successfully");
-                } catch (const std::exception& e) {
+                } catch (const std::exception &e) {
                     brls::Logger::error("HomeLive: Exception in async saveWithTimestamp: {}", e.what());
                 } catch (...) {
                     brls::Logger::error("HomeLive: Unknown exception in async saveWithTimestamp");
@@ -605,9 +688,11 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
 }
 
 void HomeLive::selectGroupIndex(size_t index) {
-    auto* datasource = dynamic_cast<DataSourceUpList*>(upRecyclingGrid->getDataSource());
-    if (!datasource) return;
-    if (index >= datasource->getItemCount()) return;
+    auto *datasource = dynamic_cast<DataSourceUpList *>(upRecyclingGrid->getDataSource());
+    if (!datasource)
+        return;
+    if (index >= datasource->getItemCount())
+        return;
     this->selectedGroupIndex = index;
     datasource->setSelectedIndex(upRecyclingGrid, index);
     upRecyclingGrid->selectRowAt(index, false);
@@ -619,8 +704,9 @@ void HomeLive::selectGroupIndex(size_t index) {
         if (groupCache.count(selectedGroup)) {
             filtered = groupCache[selectedGroup];
         } else {
-            for (const auto& item : this->channelsList) {
-                if (item.groupTitle == selectedGroup) filtered.push_back(item);
+            for (const auto &item : this->channelsList) {
+                if (item.groupTitle == selectedGroup)
+                    filtered.push_back(item);
             }
             groupCache[selectedGroup] = filtered;
         }
@@ -628,17 +714,18 @@ void HomeLive::selectGroupIndex(size_t index) {
     if (filtered.empty())
         recyclingGrid->setEmpty();
     else
-        recyclingGrid->setDataSource(new DataSourceLiveVideoList(filtered));
+        recyclingGrid->setDataSource(new DataSourceLiveVideoList(filtered, validityFlag));
 
     brls::Logger::debug("selectGroupIndex: {}", index);
 }
 
 void HomeLive::toggleFavorite() {
-    //get focus item
-    auto* item = dynamic_cast<RecyclingGridItemLiveVideoCard*>(this->recyclingGrid->getFocusedItem());
-    if (!item) return;
+    // get focus item
+    auto *item = dynamic_cast<RecyclingGridItemLiveVideoCard *>(this->recyclingGrid->getFocusedItem());
+    if (!item)
+        return;
 
-    //get channel
+    // get channel
     tsvitch::LiveM3u8 channel = item->getChannel();
 
     FavoriteManager::get()->toggle(channel);
@@ -651,29 +738,35 @@ void HomeLive::toggleFavorite() {
 }
 
 void HomeLive::search() {
-    tsvitch::openSearchInput(brls::getStr("hints/search"),"",[this](std::string query){if(query.empty())cancelSearch();else filter(query);});
+    tsvitch::openSearchInput(brls::getStr("hints/search"), "", [this](std::string query) {
+        if (query.empty())
+            cancelSearch();
+        else
+            filter(query);
+    });
 }
 
 void HomeLive::cancelSearch() {
     isSearchActive = false;
-    this->recyclingGrid->setDataSource(new DataSourceLiveVideoList(this->channelsList));
+    this->recyclingGrid->setDataSource(new DataSourceLiveVideoList(this->channelsList, validityFlag));
     upRecyclingGrid->setVisibility(brls::Visibility::VISIBLE);
     this->selectGroupIndex(this->selectedGroupIndex);
 }
 
-void HomeLive::filter(const std::string& key) {
-    if (key.empty()) return;
+void HomeLive::filter(const std::string &key) {
+    if (key.empty())
+        return;
 
     isSearchActive = true;
 
     brls::Threading::sync([this, key]() {
-        auto* datasource = dynamic_cast<DataSourceLiveVideoList*>(recyclingGrid->getDataSource());
+        auto *datasource = dynamic_cast<DataSourceLiveVideoList *>(recyclingGrid->getDataSource());
         if (datasource) {
             tsvitch::LiveM3u8ListResult filtered;
-            const auto lowerKey=tsvitch::normalizeSearchText(key);
-            for (const auto& item : this->channelsList) {
-                const auto lowerTitle=tsvitch::normalizeSearchText(item.title);
-                const auto lowerGroupTitle=tsvitch::normalizeSearchText(item.groupTitle);
+            const auto lowerKey = tsvitch::normalizeSearchText(key);
+            for (const auto &item : this->channelsList) {
+                const auto lowerTitle = tsvitch::normalizeSearchText(item.title);
+                const auto lowerGroupTitle = tsvitch::normalizeSearchText(item.groupTitle);
                 if (lowerTitle.find(lowerKey) != std::string::npos ||
                     lowerGroupTitle.find(lowerKey) != std::string::npos)
                     filtered.push_back(item);
@@ -681,7 +774,7 @@ void HomeLive::filter(const std::string& key) {
             if (filtered.empty()) {
                 recyclingGrid->setEmpty();
             } else {
-                recyclingGrid->setDataSource(new DataSourceLiveVideoList(filtered));
+                recyclingGrid->setDataSource(new DataSourceLiveVideoList(filtered, validityFlag));
             }
             upRecyclingGrid->setVisibility(brls::Visibility::GONE);
         }
@@ -699,7 +792,8 @@ void HomeLive::onShow() {
 
     // Smart refresh: controlla se abbiamo già canali in memoria
     if (!channelsList.empty()) {
-        brls::Logger::debug("HomeLive onShow: Already have {} channels in memory, checking if refresh needed", channelsList.size());
+        brls::Logger::debug("HomeLive onShow: Already have {} channels in memory, checking if refresh needed",
+                            channelsList.size());
 
         // Per decidere se ricaricare, controlla l'età della cache
         int iptvMode = ProgramConfig::instance().getSettingItem(SettingItem::IPTV_MODE, 0);
@@ -722,7 +816,8 @@ void HomeLive::onShow() {
                 }
 
                 if (needsRefresh) {
-                    brls::Logger::info("HomeLive onShow: Cache expired, refreshing channels (IPTV mode: {})", iptvMode);
+                    brls::Logger::info("HomeLive onShow: Cache expired, refreshing channels (IPTV mode: {})",
+                                       iptvMode);
                     this->requestLiveList();
                 } else {
                     brls::Logger::debug("HomeLive onShow: Cache still valid, no refresh needed");
@@ -735,7 +830,8 @@ void HomeLive::onShow() {
         return;
     }
 
-    // Se non abbiamo canali e il caricamento iniziale non è in corso, usa lo stesso meccanismo del costruttore
+    // Se non abbiamo canali e il caricamento iniziale non è in corso, usa lo stesso meccanismo del
+    // costruttore
     brls::Logger::debug("HomeLive onShow: No channels in memory and no initial load in progress, loading...");
 
     int iptvMode = ProgramConfig::instance().getSettingItem(SettingItem::IPTV_MODE, 0);
@@ -756,7 +852,8 @@ void HomeLive::onShow() {
             }
 
             if (!cachedChannels.empty()) {
-                brls::Logger::info("HomeLive onShow: Using valid cached channels ({} channels)", cachedChannels.size());
+                brls::Logger::info("HomeLive onShow: Using valid cached channels ({} channels)",
+                                   cachedChannels.size());
                 this->onLiveList(cachedChannels, false);
             } else {
                 brls::Logger::info("HomeLive onShow: No valid cache, requesting fresh channels");
@@ -776,24 +873,24 @@ void HomeLive::onCreate() {
     brls::Logger::debug("HomeLive onCreate: Delegating to constructor for async loading");
 }
 
-    // for (int i = 0; i < 100; ++i) {
-    //     // Crea la sidebar item (puoi personalizzare label e stile)
-    //    auto* item = new AutoSidebarItem();
-    //         item->setTabStyle(AutoTabBarStyle::PLAIN);
-    //         item->setLabel("Tab " + std::to_string(i + 1));
-    //         item->setFontSize(18);
+// for (int i = 0; i < 100; ++i) {
+//     // Crea la sidebar item (puoi personalizzare label e stile)
+//    auto* item = new AutoSidebarItem();
+//         item->setTabStyle(AutoTabBarStyle::PLAIN);
+//         item->setLabel("Tab " + std::to_string(i + 1));
+//         item->setFontSize(18);
 
-    //     // Funzione che crea la view associata al tab
-    //        this->tabFrame->addTab(item, [this, i, item]() {
-    //         // Qui puoi restituire una view diversa per ogni tab
-    //         // Esempio: una semplice Box con un'etichetta
-    //         auto* box = new brls::Box();
-    //         auto* label = new brls::Label();
-    //         label->setText("Contenuto Tab " + std::to_string(i + 1));
-    //         box->addView(label);
-    //         return box;
-    //     });
-    // }
+//     // Funzione che crea la view associata al tab
+//        this->tabFrame->addTab(item, [this, i, item]() {
+//         // Qui puoi restituire una view diversa per ogni tab
+//         // Esempio: una semplice Box con un'etichetta
+//         auto* box = new brls::Box();
+//         auto* label = new brls::Label();
+//         label->setText("Contenuto Tab " + std::to_string(i + 1));
+//         box->addView(label);
+//         return box;
+//     });
+// }
 
 HomeLive::~HomeLive() {
     brls::Logger::debug("Fragment HomeLiveActivity: delete");
@@ -809,14 +906,14 @@ HomeLive::~HomeLive() {
     }
 }
 
-brls::View* HomeLive::create() {
+brls::View *HomeLive::create() {
     brls::Logger::debug("HomeLive::create() called - creating new HomeLive instance");
     return new HomeLive();
 }
 
 void HomeLive::downloadVideo() {
     // Ottieni l'item attualmente focalizzato
-    auto* item = dynamic_cast<RecyclingGridItemLiveVideoCard*>(this->recyclingGrid->getFocusedItem());
+    auto *item = dynamic_cast<RecyclingGridItemLiveVideoCard *>(this->recyclingGrid->getFocusedItem());
     if (!item) {
         brls::Logger::warning("HomeLive::downloadVideo: No focused item");
         return;
@@ -834,23 +931,21 @@ void HomeLive::downloadVideo() {
 
     // Avvia il download
     std::string downloadId = DownloadManager::instance().startDownload(
-        channel.title,
-        channel.url,
-        channel.logo,  // URL dell'immagine
-        [](const std::string& id, float progress, size_t downloaded, size_t total) {
+        channel.title, channel.url,
+        channel.logo, // URL dell'immagine
+        [](const std::string &id, float progress, size_t downloaded, size_t total) {
             // Callback di progresso - aggiorna il manager globale
             std::string progressText = fmt::format("{:.1f}%", progress);
             std::string statusText = fmt::format("{} / {} bytes", downloaded, total);
 
             brls::sync([id, progress, progressText, statusText]() {
-                tsvitch::DownloadProgressManager::getInstance()->updateProgress(
-                    id, progress, statusText, progressText
-                );
+                tsvitch::DownloadProgressManager::getInstance()->updateProgress(id, progress, statusText,
+                                                                                progressText);
             });
 
             brls::Logger::debug("Download {}: {:.1f}% ({}/{} bytes)", id, progress, downloaded, total);
         },
-        [](const std::string& id, const std::string& filePath) {
+        [](const std::string &id, const std::string &filePath) {
             // Callback di completamento
             brls::Logger::info("Download {} completed: {}", id, filePath);
 
@@ -866,7 +961,7 @@ void HomeLive::downloadVideo() {
                 }
             });
         },
-        [](const std::string& id, const std::string& error) {
+        [](const std::string &id, const std::string &error) {
             // Callback di errore
             brls::Logger::error("Download {} failed: {}", id, error);
             brls::sync([id, error]() {
@@ -874,8 +969,7 @@ void HomeLive::downloadVideo() {
                 tsvitch::DownloadProgressManager::getInstance()->hideDownloadProgress(id);
                 brls::Application::notify("Errore download: " + error);
             });
-        }
-    );
+        });
 
     if (!downloadId.empty()) {
         // Controlla lo stato del download per vedere se è già completato
@@ -883,12 +977,12 @@ void HomeLive::downloadVideo() {
 
         if (downloadItem.status == DownloadStatus::COMPLETED) {
             // È un download già completato, non mostrare overlay
-            brls::Logger::info("HomeLive: Skipped showing overlay for already completed download {} ({})", downloadId, channel.title);
+            brls::Logger::info("HomeLive: Skipped showing overlay for already completed download {} ({})",
+                               downloadId, channel.title);
         } else {
             // È un nuovo download o uno in corso, mostra l'overlay
-            tsvitch::DownloadProgressManager::getInstance()->showDownloadProgress(
-                downloadId, channel.title, channel.url
-            );
+            tsvitch::DownloadProgressManager::getInstance()->showDownloadProgress(downloadId, channel.title,
+                                                                                  channel.url);
 
             brls::Application::notify("Download avviato: " + channel.title);
             brls::Logger::info("HomeLive: Started download {} for {}", downloadId, channel.title);

@@ -3,6 +3,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <functional>
 #include <vector>
 #include <string>
 #include <cstdlib>
@@ -67,6 +68,7 @@ typedef const char *(*mpvErrorStringFunc)(int error);
 typedef mpv_event *(*mpvWaitEventFunc)(mpv_handle *ctx, double timeout);
 typedef int (*mpvGetPropertyFunc)(mpv_handle *ctx, const char *name, mpv_format format, void *data);
 typedef int (*mpvCommandAsyncFunc)(mpv_handle *ctx, uint64_t reply_userdata, const char **args);
+typedef int (*mpvSetPropertyStringFunc)(mpv_handle*,const char*,const char*);
 typedef char *(*mpvGetPropertyStringFunc)(mpv_handle *ctx, const char *name);
 typedef void (*mpvFreeNodeContentsFunc)(mpv_node *node);
 typedef int (*mpvSetOptionFunc)(mpv_handle *ctx, const char *name, mpv_format format, void *data);
@@ -95,6 +97,7 @@ extern mpvGetPropertyStringFunc mpvGetPropertyString;
 extern mpvFreeNodeContentsFunc mpvFreeNodeContents;
 extern mpvSetOptionFunc mpvSetOption;
 extern mpvFreeFunc mpvFree;
+extern mpvSetPropertyStringFunc mpvSetPropertyString;
 extern mpvRenderContextCreateFunc mpvRenderContextCreate;
 extern mpvRenderContextSetUpdateCallbackFunc mpvRenderContextSetUpdateCallback;
 extern mpvRenderContextRenderFunc mpvRenderContextRender;
@@ -117,6 +120,7 @@ extern mpvClientApiVersionFunc mpvClientApiVersion;
 #define mpvGetPropertyString mpv_get_property_string
 #define mpvFreeNodeContents mpv_free_node_contents
 #define mpvSetOption mpv_set_option
+#define mpvSetPropertyString mpv_set_property_string
 #define mpvFree mpv_free
 #define mpvRenderContextCreate mpv_render_context_create
 #define mpvRenderContextSetUpdateCallback mpv_render_context_set_update_callback
@@ -127,6 +131,7 @@ extern mpvClientApiVersionFunc mpvClientApiVersion;
 #define mpvClientApiVersion mpv_client_api_version
 #endif
 
+struct MediaTrack { int64_t id=0;std::string type,language,title,codec;bool selected=false,external=false,forced=false; };
 class MPVCore : public brls::Singleton<MPVCore> {
 public:
     MPVCore();
@@ -152,6 +157,18 @@ public:
     std::string getString(const std::string &key);
     double getDouble(const std::string &key);
     int64_t getInt(const std::string &key);
+    void preparePosition(double target,bool paused,double speed);
+    bool isPositioning() const;
+    bool cachedSeek(double seconds);
+    bool getFlag(const std::string& key);
+    std::vector<MediaTrack> tracks();
+    bool setProperty(const std::string& key,const std::string& value);
+    std::function<void()> onTrackChange;
+    void* trackChangeOwner=nullptr;
+    uint64_t trackChangeSerial=0;
+    bool selectTrack(const std::string& type,const std::string& id);
+    void applySubtitleStyle(bool background);
+
     std::unordered_map<std::string, mpv_node> getNodeMap(const std::string &key);
 
     void setUrl(const std::string &url, const std::string &extra = "", const std::string &method = "replace");

@@ -25,3 +25,10 @@ if pkg-config --exists fribidi 2>/dev/null; then
     "$TEST_DIR/bidi-cursor"
 fi
 python3 tests/font_metadata_test.py
+c++ -std=c++17 -Wall -Wextra -Werror -I tsvitch/include -I tsvitch/include/api -I library/nlohmann_json/single_include tests/player_behaviour_test.cpp -o "$TEST_DIR/player"
+"$TEST_DIR/player"
+
+if pkg-config --exists libass 2>/dev/null && python3 -c 'import PIL' 2>/dev/null; then
+    c++ -std=c++17 -shared -fPIC -D__SWITCH__ $(pkg-config --cflags libass) tsvitch/source/utils/rounded_subtitles.cpp $(pkg-config --libs libass) -Wl,--wrap=ass_render_frame,--wrap=ass_set_frame_size,--wrap=ass_renderer_done -o "$TEST_DIR/subtitle-mask.so"
+    TSVITCH_SUBTITLE_RENDERER_LIB="$TEST_DIR/subtitle-mask.so" python3 tests/render_subtitles.py "$TEST_DIR/subtitles"
+fi

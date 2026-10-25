@@ -7,6 +7,8 @@
 #include <borealis/views/dialog.hpp>
 
 namespace tsvitch {
+inline std::string& lastLiveChannelUrl(){static std::string value;return value;}
+
 
 /**
  * Determina se un contenuto è una live stream basandosi su URL e titolo

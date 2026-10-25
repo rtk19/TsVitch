@@ -12,19 +12,21 @@
 class VideoView;
 
 class LiveActivity : public brls::Activity, public LiveDataRequest {
-public:
+  public:
     CONTENT_FROM_XML_RES("activity/video_activity.xml");
 
-    explicit LiveActivity(const std::vector<tsvitch::LiveM3u8>& channels, size_t startIndex,
+    explicit LiveActivity(const std::vector<tsvitch::LiveM3u8> &channels, size_t startIndex,
                           std::function<void()> onClose = nullptr);
 
     void setCommonData();
 
     void onContentAvailable() override;
+    void onResume() override;
+    void installTrackRecovery();
 
     void onLiveData(std::string url) override;
 
-    void onError(const std::string& error) override;
+    void onError(const std::string &error) override;
 
     std::vector<std::string> getQualityDescriptionList();
     int getCurrentQualityIndex();
@@ -32,10 +34,21 @@ public:
     void retryRequestData();
 
     void startLive();
+    void setPlaybackEnd(std::function<void()> action);
+    std::shared_ptr<bool> playerAlive=std::make_shared<bool>(true);
+    uint64_t playbackGeneration=0;
     void seekArchive(double seconds);
     void returnToLive();
     void savePlaybackPosition();
     double archiveOffset = 0;
+    double archiveTarget = 0, archiveSpeed = 1;
+    bool archiveReloading = false, archivePaused = false;
+    std::string archiveUrl, archiveAudio, archiveSubtitle;
+    bool trackReloading = false, trackPaused = false;
+    double trackSpeed = 1;
+    std::string trackAudio, trackSubtitle;
+    void loadArchive(double seconds, bool preserve);
+
     bool mediaFinished = false;
     bool progressWriteWarned = false;
     bool restorePending = true;
@@ -51,8 +64,8 @@ public:
 
     ~LiveActivity() override;
 
-protected:
-    VideoView* video = nullptr;
+  protected:
+    VideoView *video = nullptr;
 
     std::function<void()> onCloseCallback;
 
@@ -77,6 +90,6 @@ protected:
     std::string currentDownloadId;
     bool hasActiveDownload = false;
 
-private:
-   void getAdUrlFromServer(std::function<void(const std::string&)> callback = nullptr);
+  private:
+    void getAdUrlFromServer(std::function<void(const std::string &)> callback = nullptr);
 };
