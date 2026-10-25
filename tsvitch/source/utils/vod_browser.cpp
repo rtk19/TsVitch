@@ -6,6 +6,9 @@
 #include "utils/xmltv.hpp"
 #include "utils/activity_helper.hpp"
 #include "utils/playlist.hpp"
+#include "utils/content_metadata.hpp"
+#include "utils/search_input.hpp"
+#include "utils/search_text.hpp"
 #include "utils/vod_helpers.hpp"
 #include "utils/vod_cache_runtime.hpp"
 #include "utils/watch_progress.hpp"
@@ -248,7 +251,7 @@ void rawCatalogue(const Source &source, bool series, std::function<void(Items)> 
                 item.providerId = source.server + "#" + source.user;
                 item.contentType = series ? "series" : "movie";
                 item.groupTitle = text(entry, "category_id");
-                item.logo = text(entry, series ? "cover" : "stream_icon");
+                item.logo = contentArtwork(entry, source.server + "/");
                 item.addedAt = numberField(entry, "added");
                 if (!item.addedAt)
                     item.addedAt = numberField(entry, "last_modified");
@@ -290,9 +293,15 @@ void rawCatalogue(const Source &source, bool series, std::function<void(Items)> 
     request(source, series ? "get_series_categories" : "get_vod_categories", "", categoriesReady,
             [categoriesReady] { categoriesReady(Json::array()); });
 }
+struct EpisodeCollection {
+    SharedItems raw;
+    std::vector<EpisodeGroup> groups;
+    std::unordered_map<std::string, size_t> byMedia;
+};
 struct Library {
     Source source;
     SharedItems items;
+    std::shared_ptr<const EpisodeCollection> episodes;
     std::unordered_map<std::string, size_t> byKey;
     std::map<std::string, Indices> categories;
     Indices all;
@@ -358,6 +367,61 @@ void info(const Source &source, SharedItems queue, size_t index) {
     d->addButton(brls::getStr("hints/back"), [] {});
     d->open();
 }
+void playEpisode(Lib library, size_t group, size_t variant = SIZE_MAX) {
+    auto queue = std::make_shared<const Items>(episodeQueue(
+        *library->episodes->raw, library->episodes->groups,
+        [](const LiveM3u8 &item) { return watchStore().progress(item); }, group, variant));
+    play(queue, group);
+}
+void showEpisodeSources(Lib library, size_t group) {
+    const auto &set = *library->episodes;
+    auto *page = openVodGrid(tr("episode_sources"));
+    Tiles tiles;
+    for (auto index : set.groups[group].variants) {
+        const auto &media = (*set.raw)[index];
+        VodTile tile;
+        tile.title = media.title;
+        tile.subtitle = tr("source") + " " + std::to_string(tiles.size() + 1);
+        tile.image = artworkUrl(library->source.server + "/", media.logo);
+        tile.key = mediaKey(media);
+        tile.progressMedia = media;
+        tile.style = VodStyle::Episode;
+        tile.select = [library, group, index] { playEpisode(library, group, index); };
+        favoriteAction(tile, library->source, media, true);
+        tiles.push_back(std::move(tile));
+    }
+    page->setTiles(std::move(tiles));
+    page->restoreFocusOnShow();
+}
+void episodeInfo(Lib library, size_t group) {
+    const auto &set = *library->episodes;
+    const auto index = preferredEpisode(*set.raw, set.groups[group],
+                                        [](const LiveM3u8 &media) { return watchStore().progress(media); });
+    const auto media = (*set.raw)[index];
+    auto *d = new brls::Dialog(media.title + "\n\n" + media.description);
+    d->addButton(tr("continue"), [library, group] { playEpisode(library, group); });
+    d->addButton(tr("options"), [library, group, index, media] {
+        auto *options = new brls::Dialog(media.title);
+        options->addButton(tr(libraryPreferences().isFavorite(library->source.scope, media, true)
+                                  ? "remove_favorite"
+                                  : "add_favorite"),
+                           [library, media] { toggleFavorite(library->source, media, true); });
+        options->addButton(tr("start_over"), [library, group, index] {
+            for (auto variant : library->episodes->groups[group].variants)
+                watchStore().clear((*library->episodes->raw)[variant]);
+            playEpisode(library, group, index);
+        });
+        if (library->episodes->groups[group].variants.size() > 1)
+            options->addButton(tr("episode_sources"),
+                               [library, group] { showEpisodeSources(library, group); });
+        else
+            options->addButton(brls::getStr("hints/back"), [] {});
+        options->open();
+    });
+    d->addButton(brls::getStr("hints/back"), [] {});
+    d->open();
+}
+
 Tiles playableTiles(Lib library, SharedIndices indices, const std::string &title);
 void showItems(Lib library, Indices indices, const std::string &title, bool favoriteShelf = false) {
     auto *page = openVodGrid(title);
@@ -381,16 +445,14 @@ Tiles playableTiles(Lib library, SharedIndices indices, const std::string &title
     tiles.reserve(indices->size() + 1);
     if (!indices->empty())
         tiles.push_back(actionTile(brls::getStr("hints/search"), "search", [library, indices, title] {
-            brls::Application::getImeManager()->openForText(
-                [library, indices, title](std::string query) {
-                    Indices filtered;
-                    query = asciiLower(query);
-                    for (auto i : *indices)
-                        if (asciiLower((*library->items)[i].title).find(query) != std::string::npos)
-                            filtered.push_back(i);
-                    showItems(library, std::move(filtered), title + " / " + brls::getStr("hints/search"));
-                },
-                brls::getStr("hints/search"), "", 128, "");
+            openSearchInput(brls::getStr("hints/search"), "", [library, indices, title](std::string query) {
+                Indices filtered;
+                query = normalizeSearchText(query);
+                for (auto i : *indices)
+                    if (normalizeSearchText((*library->items)[i].title).find(query) != std::string::npos)
+                        filtered.push_back(i);
+                showItems(library, std::move(filtered), title + " / " + brls::getStr("hints/search"));
+            });
         }));
     for (auto i : *indices) {
         const auto &media = (*library->items)[i];
@@ -399,18 +461,55 @@ Tiles playableTiles(Lib library, SharedIndices indices, const std::string &title
         tile.subtitle = media.season.empty()
                             ? media.groupTitle
                             : tr("season") + " " + media.season + " • " + tr("episode") + " " + media.episode;
-        tile.image = media.logo;
+        tile.image = artworkUrl(library->source.server + "/", artworkValue(Json(media.logo)));
         tile.key = mediaKey(media);
         tile.progressMedia = media;
+        tile.style = media.contentType == "series" ? VodStyle::Episode : VodStyle::Poster;
         tile.select = [queue = library->items, i] { play(queue, i); };
         tile.info = [source = library->source, queue = library->items, i] { info(source, queue, i); };
+        if (library->episodes) {
+            const auto set = library->episodes;
+            tile.key = set->groups[i].key;
+            tile.select = [library, i] { playEpisode(library, i); };
+            tile.info = [library, i] { episodeInfo(library, i); };
+            tile.progressState = [set, i] {
+                const auto chosen = preferredEpisode(*set->raw, set->groups[i], [](const LiveM3u8 &item) {
+                    return watchStore().progress(item);
+                });
+                return watchStore().progress((*set->raw)[chosen]);
+            };
+            if (set->groups[i].variants.size() > 1)
+                tile.subtitle += " · " + std::to_string(set->groups[i].variants.size()) + " " + tr("sources");
+            const LiveM3u8 *display = &media;
+            if (brls::Application::getLocale() == "he")
+                for (auto variant : set->groups[i].variants)
+                    if ((*set->raw)[variant].title.find("\xd7") != std::string::npos) {
+                        display = &(*set->raw)[variant];
+                        break;
+                    }
+            static const std::regex prefix(R"(^.*?[sS][0-9]+[ ._-]*[eE][0-9]+[ .:_-]*)");
+            auto caption = std::regex_replace(display->title, prefix, "");
+            tile.title = tr("episode") + " " + media.episode;
+            if (!caption.empty() && asciiLower(caption).find("episode ") != 0)
+                tile.title += " · " + caption;
+        }
         favoriteAction(tile, library->source, media, media.contentType == "series");
         tiles.push_back(std::move(tile));
     }
     return tiles;
 }
 void showSeasons(VodGridPage *page, const Source &source, const LiveM3u8 &series, SharedItems episodes) {
-    auto library = std::make_shared<Library>(source, episodes, false);
+    auto collection = std::make_shared<EpisodeCollection>();
+    collection->raw = episodes;
+    collection->groups = groupEpisodes(*episodes);
+    for (size_t group = 0; group < collection->groups.size(); ++group)
+        for (auto variant : collection->groups[group].variants)
+            collection->byMedia[mediaKey((*episodes)[variant])] = group;
+    auto canonical = std::make_shared<const Items>(episodeQueue(
+        *episodes, collection->groups, [](const LiveM3u8 &item) { return watchStore().progress(item); }));
+    auto library = std::make_shared<Library>(source, canonical, false);
+    library->episodes = collection;
+    episodes = canonical;
     auto seasons = std::make_shared<std::map<std::string, Indices>>();
     for (size_t i = 0; i < episodes->size(); ++i)
         (*seasons)[(*episodes)[i].season.empty() ? "1" : (*episodes)[i].season].push_back(i);
@@ -435,8 +534,8 @@ void showSeasons(VodGridPage *page, const Source &source, const LiveM3u8 &series
             tiles.push_back(std::move(fav));
             for (const auto &watched : watchStore().recent("series"))
                 if (seriesKey(watched) == seriesKey(series) && watchStore().progress(watched).resume() > 0) {
-                    auto found = library->byKey.find(mediaKey(watched));
-                    if (found != library->byKey.end()) {
+                    auto found = library->episodes->byMedia.find(mediaKey(watched));
+                    if (found != library->episodes->byMedia.end()) {
                         auto list = std::make_shared<const Indices>(Indices{found->second});
                         auto resume = playableTiles(library, list, series.title);
                         resume[1].title = tr("continue") + " • " + watched.title;
@@ -449,7 +548,7 @@ void showSeasons(VodGridPage *page, const Source &source, const LiveM3u8 &series
                     actionTile(tr("season") + " " + key, "season:" + key, [library, series, seasons, key] {
                         showItems(library, seasons->at(key), series.title + " / " + tr("season") + " " + key);
                     });
-                tile.image = series.logo;
+                tile.image = artworkUrl(library->source.server + "/", artworkValue(Json(series.logo)));
                 tile.subtitle = std::to_string(seasons->at(key).size()) + " " + tr("s7");
                 tiles.push_back(std::move(tile));
             }
@@ -506,7 +605,7 @@ void openSeries(Lib library, LiveM3u8 series) {
                         if (e.contains("info")) {
                             media.description = description(e["info"]);
                             media.durationHint = numberField(e["info"], "duration_secs");
-                            auto image = text(e["info"], "movie_image");
+                            auto image = contentArtwork(e, source.server + "/");
                             if (!image.empty())
                                 media.logo = image;
                         }
@@ -553,9 +652,10 @@ Tiles seriesTiles(Lib library, SharedIndices indices) {
         series.title = series.seriesTitle;
         VodTile tile;
         tile.title = series.title;
+        tile.style = VodStyle::Poster;
         tile.subtitle = series.groupTitle;
         tile.key = seriesKey(series);
-        tile.image = series.logo;
+        tile.image = artworkUrl(library->source.server + "/", artworkValue(Json(series.logo)));
         auto it = progress.find(tile.key);
         if (it != progress.end())
             tile.progressMedia = it->second;
@@ -590,19 +690,19 @@ void showSeries(Lib library, Indices indices, const std::string &title, bool fav
             if (!visible->empty())
                 tiles.insert(tiles.begin(),
                              actionTile(brls::getStr("hints/search"), "search", [library, visible, title] {
-                                 brls::Application::getImeManager()->openForText(
+                                 openSearchInput(
+                                     brls::getStr("hints/search"), "",
                                      [library, visible, title](std::string query) {
                                          Indices filtered;
-                                         query = asciiLower(query);
+                                         query = normalizeSearchText(query);
                                          for (auto i : *visible)
-                                             if (asciiLower((*library->items)[i].seriesTitle + " " +
-                                                            (*library->items)[i].title)
+                                             if (normalizeSearchText((*library->items)[i].seriesTitle + " " +
+                                                                     (*library->items)[i].title)
                                                      .find(query) != std::string::npos)
                                                  filtered.push_back(i);
                                          showSeries(library, std::move(filtered),
                                                     title + " / " + brls::getStr("hints/search"));
-                                     },
-                                     brls::getStr("hints/search"), "", 128, "");
+                                     });
                              }));
             return tiles;
         },

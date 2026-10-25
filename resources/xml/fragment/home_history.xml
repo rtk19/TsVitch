@@ -8,8 +8,8 @@
                 paddingLeft="20"
                 paddingRight="20"
                 grow="1"
-                spanCount="@style/tsvitch/grid/span/4"
-                itemHeight="200"
+                spanCount="3"
+                itemHeight="216"
                 wireframe="false"
                 preFetchLine="2"
                 id="home/history/recyclingGrid" />

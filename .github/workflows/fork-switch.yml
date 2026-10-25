@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - run: sudo apt-get update && sudo apt-get install -y libfribidi0
+      - run: sudo apt-get update && sudo apt-get install -y libfribidi-dev
       - run: bash tests/run.sh
   ui-smoke:
     needs: verify
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libmpv-dev libssl-dev libcurl4-openssl-dev libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev xvfb xauth dbus-x11
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libmpv-dev libfribidi-dev libwebp-dev libssl-dev libcurl4-openssl-dev libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev xvfb xauth dbus-x11
       - run: cmake -B cmake-build-desktop -DCMAKE_BUILD_TYPE=Debug -DPLATFORM_DESKTOP=ON -DANALYTICS=OFF -DSERVER_URL= -DSERVER_TOKEN= -DBRLS_UNITY_BUILD=OFF -DDISABLE_OPENCC=ON -DUSE_SYSTEM_CURL=ON -DUSE_LIBROMFS=OFF
       - run: cmake --build cmake-build-desktop -j4
       - run: xvfb-run -a dbus-run-session -- python3 tests/ui_smoke_test.py cmake-build-desktop/TsVitch

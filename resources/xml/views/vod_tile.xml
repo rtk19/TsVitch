@@ -1,7 +1,12 @@
-<brls:Box axis="column" width="auto" height="auto" highlightCornerRadius="8">
-    <brls:Image id="vod/tile/image" width="100%" height="145" scalingType="fit" backgroundColor="@theme/color/grey_4" cornerRadius="6"/>
-    <brls:Label id="vod/tile/favorite" positionType="absolute" positionTop="5" positionRight="8" fontSize="25" text="★" textColor="@theme/font/yellow_1" visibility="gone"/>
-    <brls:Label id="vod/tile/title" width="100%" height="28" fontSize="18" marginTop="8"/>
-    <brls:Label id="vod/tile/subtitle" width="100%" height="20" fontSize="13"/>
-    <brls:Label id="vod/tile/progress" width="100%" height="20" fontSize="13"/>
+<brls:Box hideHighlightBackground="true" axis="column" width="auto" height="auto" highlightCornerRadius="10" backgroundColor="#1C4070" cornerRadius="8">
+    <brls:Box id="vod/tile/art" width="100%" height="210" justifyContent="center" alignItems="center" backgroundColor="#173457" cornerRadius="8">
+        <SVGImage id="vod/tile/symbol" width="58" height="58" SVG="@res/svg/ui-movie.svg"/>
+        <brls:Image id="vod/tile/image" positionType="absolute" positionTop="0" positionLeft="0" width="100%" height="100%" scalingType="fit" cornerRadius="8"/>
+    </brls:Box>
+    <brls:Label id="vod/tile/favorite" positionType="absolute" positionTop="6" positionRight="10" fontSize="30" text="★" textColor="#FFDF65" visibility="gone"/>
+    <brls:Box axis="column" padding="12" width="100%" grow="1">
+        <brls:Label id="vod/tile/title" width="100%" height="56" fontSize="25" textColor="#FFFFFF" singleLine="false"/>
+        <brls:Label id="vod/tile/subtitle" width="100%" height="28" fontSize="21" textColor="#D7E5F7"/>
+        <brls:Label id="vod/tile/progress" width="100%" height="27" fontSize="21" textColor="#FFDF65"/>
+    </brls:Box>
 </brls:Box>

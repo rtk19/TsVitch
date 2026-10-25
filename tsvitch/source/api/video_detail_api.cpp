@@ -1,4 +1,5 @@
 #include "utils/vod_cache_runtime.hpp"
+#include "utils/content_metadata.hpp"
 #include "utils/library_state.hpp"
 #include <nlohmann/json.hpp>
 #include <unordered_map>
@@ -287,7 +288,7 @@ void TsVitchClient::get_xtream_channels_with_retry(const std::function<void(Live
                                 while (!epgBase.empty() && epgBase.back() == '/') epgBase.pop_back();
                                 live.epgSource = epgBase + "/xmltv.php?username=" + encodeUrlComponent(username) + "&password=" + encodeUrlComponent(password);
                                 live.title = sanitizeText(safeGetString(item, "name"));
-                                live.logo = safeGetString(item, "stream_icon");
+                                live.logo = contentArtwork(item,serverUrl+"/");
 
                                 std::string categoryName = safeGetString(item, "category_name");
                                 const auto categoryId = safeGetString(item, "category_id");

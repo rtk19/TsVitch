@@ -73,7 +73,8 @@ inline LiveM3u8ListResult parsePlaylist(const std::string& text,const std::strin
         if(line.empty()||line[0]=='#'||!pending) continue;
         current.url=resolvePlaylistUrl(base,line);current.id=attrs["tvg-id"];
         current.epgId=current.id; if(current.id.empty())current.id=current.url;
-        current.logo=resolvePlaylistUrl(base,attrs["tvg-logo"]);current.chno=attrs["tvg-chno"];
+        auto logo=attrs["tvg-logo"];for(const auto* key:{"logo","cover","poster","movie-image"})if(logo.empty())logo=attrs[key];
+        current.logo=resolvePlaylistUrl(base,logo);current.chno=attrs["tvg-chno"];
         current.groupTitle=attrs["group-title"];current.description=attrs["description"];
         if(current.description.empty()) current.description=attrs["tvg-description"];
         current.epgSource=attrs["x-tvg-url"].empty()?attrs["url-tvg"]:attrs["x-tvg-url"];

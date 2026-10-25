@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cpr/cpr.h>
+#include <atomic>
 #include <ctime>
 #include <random>
 #include <unordered_map>
@@ -83,7 +84,7 @@ protected:
     void clean();
 
 private:
-    bool isCancel{};
+    std::atomic<bool> isCancel{false};
     brls::Image* imageView;
     std::string imageUrl;
     Pool::iterator currentIter;

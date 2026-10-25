@@ -18,3 +18,10 @@ c++ -std=c++17 -Wall -Wextra -Werror -I tsvitch/include tests/update_files_test.
 "$TEST_DIR/update" "$TEST_DIR/update-files"
 c++ -std=c++17 -Wall -Wextra -Werror -I tsvitch/include -I tsvitch/include/api -I library/nlohmann_json/single_include tests/library_features_test.cpp -o "$TEST_DIR/library"
 "$TEST_DIR/library" "$TEST_DIR/library-data"
+c++ -std=c++17 -Wall -Wextra -Werror -I tsvitch/include -I tsvitch/include/api -I library/nlohmann_json/single_include tests/content_navigation_test.cpp -o "$TEST_DIR/content"
+"$TEST_DIR/content"
+if pkg-config --exists fribidi 2>/dev/null; then
+    cc -std=c99 -Wall -Wextra -Werror $(pkg-config --cflags fribidi) tests/bidi_cursor_test.c $(pkg-config --libs fribidi) -o "$TEST_DIR/bidi-cursor"
+    "$TEST_DIR/bidi-cursor"
+fi
+python3 tests/font_metadata_test.py

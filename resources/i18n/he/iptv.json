@@ -79,5 +79,19 @@
   "pin_category": "הצמדת קטגוריה לראש הרשימה",
   "unpin_category": "ביטול הצמדת קטגוריה",
   "pinned": "מוצמד",
-  "preferences_error": "לא ניתן לשמור את השינוי. בדקו שיש מקום פנוי בכרטיס."
+  "preferences_error": "לא ניתן לשמור את השינוי. בדקו שיש מקום פנוי בכרטיס.",
+  "refresh_short": "רענון",
+  "search_hint": "שם, ערוץ או קטגוריה",
+  "key_space": "רווח",
+  "key_delete": "מחיקה",
+  "key_system": "מקלדת המערכת",
+  "key_clear": "ניקוי",
+  "keyboard_help": "חצים: בחירת מקש · A: הקלדה · X: מחיקה · Y: שפה · L/R: סמן · +: חיפוש",
+  "key_language": "שפה",
+  "cursor_left": "תו קודם",
+  "cursor_right": "תו הבא",
+  "episode_sources": "מקורות צפייה",
+  "source": "מקור",
+  "sources": "מקורות",
+  "epg_unavailable": "אין מידע על השידור"
 }

@@ -64,13 +64,13 @@ class VodCache {
         std::lock_guard<std::mutex> guard(diskMutex);
         auto data = readJsonFile(path(key));
         try {
-            if (!data.is_object() || data.value("format", 0) != 1 ||
+            if (!data.is_object() || (data.value("format", 0) != 1 && data.value("format", 0) != 2) ||
                 data.value("source", std::string{}) != key || !data.at("items").is_array())
                 return {};
             auto snapshot = std::make_shared<VodSnapshot>();
             snapshot->items =
                 std::make_shared<const LiveM3u8ListResult>(data["items"].get<LiveM3u8ListResult>());
-            snapshot->saved = data.at("saved").get<int64_t>();
+            snapshot->saved = data.value("format",0)==1?0:data.at("saved").get<int64_t>();
             return snapshot;
         } catch (...) {
             return {};
@@ -80,7 +80,7 @@ class VodCache {
         std::lock_guard<std::mutex> guard(diskMutex);
         const bool result = writeJsonFile(
             path(key),
-            nlohmann::json{{"format", 1}, {"source", key}, {"saved", value.saved}, {"items", *value.items}});
+            nlohmann::json{{"format", 2}, {"source", key}, {"saved", value.saved}, {"items", *value.items}});
         // Bound the application's own disk cache; active pages retain shared memory snapshots.
         if (result)
             try {

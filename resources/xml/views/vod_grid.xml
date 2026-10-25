@@ -1,8 +1,9 @@
-<brls:Box width="100%" height="100%" axis="column" padding="20">
-    <brls:Box width="100%" height="52" alignItems="center">
-        <brls:DetailCell id="vod/back" width="110" height="48"/>
-        <brls:Label id="vod/title" grow="1" fontSize="24" marginLeft="20"/>
-        <brls:DetailCell id="vod/refresh" width="170" height="48" visibility="gone"/>
+<brls:Box width="100%" height="100%" axis="column" padding="18" backgroundColor="#102944">
+    <brls:Box width="100%" height="66" alignItems="center" marginBottom="10">
+        <IconButton id="vod/back" width="150" title="@i18n/hints/back" icon="back"/>
+        <brls:Label id="vod/title" grow="1" fontSize="30" marginLeft="18" textColor="#FFFFFF"/>
+        <IconButton id="vod/search" width="160" title="@i18n/hints/search" icon="search" visibility="gone" marginLeft="8"/>
+        <IconButton id="vod/refresh" width="160" title="@i18n/iptv/refresh_short" icon="refresh" visibility="gone" marginLeft="8"/>
     </brls:Box>
-    <RecyclingGrid id="vod/grid" grow="1" width="100%" spanCount="4" itemHeight="240" itemSpace="18" preFetchLine="1" paddingTop="12"/>
+    <RecyclingGrid id="vod/grid" grow="1" width="100%" spanCount="3" itemHeight="170" itemSpace="14" preFetchLine="1"/>
 </brls:Box>

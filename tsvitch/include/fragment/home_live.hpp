@@ -14,7 +14,7 @@ namespace brls {
 class Label;
 };
 class RecyclingGrid;
-class CustomButton;
+class IconButton;
 
 class HomeLive : public AttachedView, public HomeLiveRequest {
 public:
@@ -58,5 +58,5 @@ private:
     bool hasExitSubscription = false;
     BRLS_BIND(RecyclingGrid, recyclingGrid, "home/live/recyclingGrid");
     BRLS_BIND(RecyclingGrid, upRecyclingGrid, "dynamic/up/recyclingGrid");
-    BRLS_BIND(CustomButton, searchField, "home/search");
+    BRLS_BIND(IconButton, searchField, "home/search");
 };

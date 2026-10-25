@@ -1,38 +1,44 @@
-# TsVitch 0.6.5 — Refael Bar
+# TsVitch 0.6.6 — Refael Bar
 
-## VOD מהיר יותר
+## תצוגה וקריאות
 
-- קטלוגים ופרטי סדרות נשמרים בזיכרון ובכרטיס, כולל אחרי הפעלה מחדש. מעבר לקטגוריה ופתיחה חוזרת של סדרה משתמשים בנתונים שכבר נטענו.
-- בקשות מקבילות לאותם נתונים מאוחדות. רשימת M3U שכבר ירדה עבור הערוצים משמשת גם את ה־VOD.
-- במקורות Xtream, רשימת התוכן ושמות הקטגוריות נטענים במקביל.
-- הנתונים משותפים בין הקוביות; חיפושים חוזרים בכל הקטלוג הוחלפו באינדקסים. מסך שלא השתנה אינו נבנה מחדש בכל חזרה אליו.
-- נתונים בני יותר משש שעות מוצגים מיד בזמן רענון ברקע. **ZL** או כפתור **רענון ספרייה** מרעננים ידנית. כשל ברענון משאיר את הספרייה השמורה זמינה.
-- מטמון הזיכרון מוגבל ל־14 תמונות מצב ומטמון הכרטיס ל־64 קבצים. נתוני מסכי VOD נסגרים משתחררים כדי למנוע הצטברות זיכרון בניווט חוזר.
+- כפתורי חזרה, חיפוש ורענון כוללים אייקוני SVG וכיתוב גדול. החיפוש ב־VOD עבר לסרגל העליון ונגיש גם באמצעות **L**.
+- כרטיסי ערוצים מציגים לוגו לצד שם גדול, שם התוכנית הנוכחית, שעות ופס התקדמות, וסימון ארכיון ומועדפים לפי זמינות.
+- כרטיסי סרטים וסדרות מציגים פוסטרים; כרטיסי קטגוריות ופרקים מותאמים בנפרד. כשהספק אינו מספק תמונה תקינה מוצג סמל ברור.
+- תיקון שדות תמונה חלופיים, כתובות יחסיות, מערכי תמונות ו־WebP עם פרמטרים בכתובת; נוספה טעינת SVG. התמונות מוקטנות לפני העלאה ל־GPU, עם מגבלות הורדה ופענוח וביטול בעת גלילה.
+- פונט Noto שהגיע במשקל ברירת מחדל 100 הוחלף בגרסת Medium קבועה (500), המתאימה למנוע הגופנים של Switch. העיבוי העדין לשאר גופני הטקסט נשמר.
+- רקע הבחירה אינו מסתיר טקסט לבן. שינויי רוחב זעירים בפריסת הקוביות אינם גורמים עוד לבנייה חוזרת וביטול טעינות תמונה.
 
-הטעינה הראשונה עדיין תלויה בגודל הקטלוג ובשרת הספק. פריט שכבר פונה מהמטמון ייטען שוב לפי הצורך.
+## חיפוש בעברית
 
-## קטגוריות ומועדפים
+- מקלדת בתוך האפליקציה לחיפוש בערוצים, בסרטים, בסדרות ובפרקים, עם חצים וטאץ׳. אין צורך בתמיכה בעברית במקלדת המערכת.
+- מעבר בין עברית, אנגלית ומספרים, רווח, מחיקה, ניקוי והזזת סמן. אפשר לפתוח גם את מקלדת המערכת עבור שפות נוספות וקלט רגיל.
+- **A** מקליד, **X** מוחק, **Y** מחליף פריסה, **L/R** מזיזים את הסמן, **+** מבצע חיפוש. הפריסה הראשונית מתאימה לשפת הממשק והאחרונה נשמרת במהלך ההפעלה.
+- חיפוש בעברית מתעלם מניקוד ומההבדל בין אותיות סופיות לרגילות; חיפוש לועזי אינו תלוי ברישיות. עריכת UTF-8 ומיקום הסמן בטקסט מעורב טופלו בנפרד.
+- תוקנה רשימת השפות שמנעה החלה בפועל של בחירת עברית בהגדרות.
 
-- **Y על קטגוריית ערוצים** מצמיד אותה לראש הרשימה או מבטל הצמדה. **X** פותח אפשרויות לקטגוריה. קטגוריות מוצמדות מסומנות ונשמרות בין הפעלות; הקטגוריה שנבחרה נשמרת לפי שמה גם כשהסדר משתנה.
-- **מועדפים** מופיעים בנפרד בסרטים ובסדרות. **Y על קובייה** מוסיף או מסיר, וכוכב מסמן פריט שמור.
-- בסדרות נשמרת **הסדרה כולה**. אפשר לסמן גם מתוך מסך העונות או דרך פרטים / אפשרויות. X בסרט או בפרק פותח פרטים, המשך צפייה ואפשרויות הכוללות מועדפים והתחלה מחדש.
-- המועדפים וההצמדות מופרדים לפי מקור IPTV. נתוני Xtream מזוהים לפי ספק וחשבון כך שהחלפת סיסמה אינה מוחקת את המועדפים.
-- השינויים חלים על Xtream ו־M3U בהתאם למטא־נתונים שהספק או הרשימה מספקים.
+## פרקים ומקורות חלופיים
 
-## קריאות טקסט
+פרקים בעלי אותו מספר עונה ופרק מוצגים כקובייה אחת. גרסאות עם שם עברי/אנגלי או קישור חלופי נשמרות ונגישות דרך **X → אפשרויות → מקורות צפייה**; מספר המקורות מופיע בכרטיס. קישורים חלופיים ומיקומי צפייה אינם נמחקים.
 
-כל גופני הטקסט מקבלים עיבוי עדין בזמן יצירת האות במטמון הגופן, כולל עברית, לטינית, ערבית ושפות מזרח אסיה. רוחב התווים, הריווח ושבירת השורות נשמרים. סמלי מקשים ואמוג׳י אינם מעובים.
+המשך הצפייה בוחר את המקור שנצפה לאחרונה, ומציג את ההתקדמות שלו. הפעלה אוטומטית עוברת לפרק הבא, במקום לעבור לגרסה נוספת של אותו פרק. בלי מספרי פרקים אמינים נשמרים פריטים נפרדים, כדי להימנע מאיחוד שגוי. השינוי חל גם על M3U וגם על Xtream, לפי המטא־נתונים הזמינים.
+
+## EPG וביצועים
+
+- ערוצי Xtream ללא XMLTV מותאם טוענים EPG קצר ברקע לכרטיסים המוצגים, עם עד ארבע בקשות במקביל, מטמון מוגבל והשהיה לפני ניסיון חוזר.
+- M3U ו־XMLTV מותאם ממשיכים להשתמש במדריך XMLTV. נתונים חסרים מסומנים במפורש.
+- מטמון הספרייה, הצמדת קטגוריות, מועדפי סרטים וסדרות, היסטוריה ומיקומי צפייה מהגרסה הקודמת נשמרים. מטמון VOD ישן מוצג מיד ומתעדכן פעם אחת ברקע כדי לחדש מטא־נתוני תמונות.
 
 ## התקנה ועדכון
 
-**Settings → Tools → Check for updates** → Update → Restart.
+**Settings → Tools → Check for updates → Update → Restart.**
 
-להתקנה ידנית החליפו את `TsVitch.nro` הקיים או חלצו `TsVitch-Switch.zip` לשורש הכרטיס. ההגדרות ונתוני הצפייה נשמרים. מומלץ להפעיל במצב יישום מלא.
+להתקנה ידנית החליפו את `TsVitch.nro` הקיים, או חלצו `TsVitch-Switch.zip` לשורש הכרטיס. מומלץ להפעיל במצב יישום מלא. מנגנון ההורדה, האימות, ההתקנה והפתיחה מחדש נשמר.
 
 ## Validation and limits
 
-The real desktop UI fixture imports 500 live channels, 4,000 movies and 1,000 series in M3U and Hebrew Xtream modes. It invokes pin/favorite actions, navigates categories, seasons and episodes, revisits the same catalogue/series, performs an explicit refresh followed by Back, then restarts the process and checks persisted preferences. Provider request counters ensure repeated opens and process restart add no catalogue/episode requests beyond the initial load and explicit refresh.
+Host tests cover Unicode input/editing/search, artwork metadata, grouped episodes with preserved alternate sources, resume source selection, next-episode queues, EPG parsing, actual FriBidi cursor wrappers, and the packaged static font. Existing cache, favorites, pinning, watch progress, catch-up and updater tests remain enabled.
 
-Host tests cover provider isolation, movie and whole-series favorite persistence, pin/unpin ordering, selected-category preservation, failed writes, cache expiry and reopening, and fractional glyph weight across languages. Existing playback progress, playlist, catch-up, update verification and Hebrew tests remain enabled. Release publication requires the host tests, real UI tests and Switch cross-build.
+The native UI fixture exercises English M3U and Hebrew Xtream with 500 channels, 4,000 movies and 1,000 series, relative PNG/WebP/SVG artwork, current programme data, duplicate episode variants and controller-accessible Hebrew search. It verifies favorites/pins and cache reuse across reopening and process restart. Release publication is gated by host tests, native UI tests and the Switch cross-build.
 
-No physical Switch was available. Actual console performance, rendering and playback still require device verification. Series grouping depends on playlist/provider metadata; cached data reflects the last successful refresh.
+No physical Switch was available. Rendering, playback and update/restart behavior on the actual device still require console verification. Artwork and programme availability depend on the provider; unknown episode numbering is never guessed from a translated title alone.

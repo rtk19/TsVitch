@@ -1,88 +1,21 @@
-<brls:Box
-        wireframe="false"
-        highlightCornerRadius="8"
-        axis="column"
-        width="auto"
-        height="auto">
-
-        <brls:Box
-                id="video/card/pic_box"
-                width="100%"
-                height="60%">
-
-
-                <brls:Image
-                        id="video/card/picture"
-                        scalingType="fit"
-                        height="100%"
-                        width="100%"
-                        backgroundColor="@theme/color/grey_4"
-                        cornerRadius="4" />
-
-                <brls:Box
-                        positionBottom="0"
-                        positionType="absolute"
-                        paddingLeft="10"
-                        paddingRight="10"
-                        width="100%"
-                        height="20%"
-                        alignItems="center">
-
-                        <brls:Label
-                                id="video/card/label/chno"
-                                positionType="absolute"
-                                positionRight="10"
-                                fontSize="16" />
-                </brls:Box>
-
+<brls:Box hideHighlightBackground="true" axis="column" width="auto" height="auto" padding="12" backgroundColor="#204775" cornerRadius="8" highlightCornerRadius="8">
+    <brls:Box axis="row" height="72" width="100%" marginBottom="8">
+        <brls:Box id="video/card/pic_box" width="72" height="72" shrink="0" marginRight="10" backgroundColor="#15304e" cornerRadius="6" justifyContent="center" alignItems="center">
+            <SVGImage id="video/card/logo-fallback" SVG="@res/svg/ui-movie.svg" width="38" height="38"/>
+            <brls:Image id="video/card/picture" positionType="absolute" positionTop="0" positionLeft="0" width="72" height="72" scalingType="fit"/>
         </brls:Box>
-
-          <SVGImage
-                        id="video/card/ico/favorite"
-                        positionType="absolute"
-                        positionLeft="10"
-                        positionTop="10"
-                        height="30"
-                        width="30"
-                        SVG="@res/svg/ico-favorites-activate.svg" />
-        <brls:Box id="video/card/archive/badge" positionType="absolute" positionTop="8" positionRight="8" padding="4" cornerRadius="4" backgroundColor="@theme/color/yellow_1">
-            <brls:Label id="video/card/archive" fontSize="14" textColor="@theme/font/yellow_1"/>
+        <brls:Box axis="column" grow="1" shrink="1">
+            <TextBox textColor="#ffffff" id="video/card/label/title" fontSize="25" maxRows="2" width="100%" height="52"/>
+            <brls:Label id="video/card/label/group" fontSize="18" height="20" textColor="#c8d9eb"/>
         </brls:Box>
-        <brls:Box
-                margin="10"
-                axis="column">
-                <TextBox
-                        marginBottom="0"
-                        wireframe="false"
-                        id="video/card/label/title"
-                        fontSize="20"
-                        lineHeight="1.5"
-                        maxRows="1"
-                        width="100%"
-                        height="30" />
-
-                <brls:Label id="video/card/label/programme" fontSize="14" height="20" width="100%"/>
-                <brls:Box
-                        grow="1"
-                        width="100%"
-                        wireframe="false"
-                        alignItems="center">
-                        <brls:Box
-                                id="video/card/hint"
-                                height="18"
-                                marginTop="2"
-                                shrink="0"
-                                backgroundColor="@theme/color/yellow_1"
-                                cornerRadius="4"
-                                justifyContent="center"
-                                alignItems="center">
-                                <brls:Label
-                                        id="video/card/label/group"
-                                        fontSize="13"
-                                        margin="2"
-                                        horizontalAlign="center"
-                                        textColor="@theme/font/yellow_1" />
-                        </brls:Box>
-                </brls:Box>
+    </brls:Box>
+    <brls:Label id="video/card/label/programme" fontSize="24" singleLine="false" height="54" width="100%" textColor="#ffffff"/>
+    <brls:Box id="video/card/hint" axis="row" height="26" width="100%" alignItems="center">
+        <brls:Label id="video/card/time" fontSize="18" grow="1" width="130" shrink="1" textColor="#ffe17d"/>
+        <brls:Label id="video/card/label/chno" width="22" fontSize="18" marginRight="6" textColor="#c8d9eb"/>
+        <brls:Box id="video/card/archive/badge" width="72" shrink="0" paddingLeft="5" paddingRight="5" height="25" alignItems="center" backgroundColor="#efc85a" cornerRadius="4">
+            <brls:Label id="video/card/archive" fontSize="18" textColor="#102844"/>
         </brls:Box>
+        <SVGImage id="video/card/ico/favorite" marginLeft="5" height="24" width="24" SVG="@res/svg/ui-favorite.svg"/>
+    </brls:Box>
 </brls:Box>

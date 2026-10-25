@@ -646,16 +646,12 @@ void RecyclingGrid::onLayout() {
 }
 
 bool RecyclingGrid::checkWidth() {
-    float width = getWidth();
-    if (oldWidth == -1) {
-        oldWidth = width;
-    }
-    if ((int)oldWidth != (int)width && width != 0) {
-        brls::Logger::debug("RecyclingGrid::checkWidth from {} to {}", oldWidth, width);
-        oldWidth = width;
-        return true;
-    }
-    oldWidth = width;
+    const float width=getWidth();
+    if(width<=0)return false;
+    if(oldWidth<0){oldWidth=width;return true;}
+    // Yoga's fractional rounding can alternate by half a pixel. Rebuilding at
+    // that boundary cancels artwork requests and needlessly recreates cells.
+    if(std::abs(oldWidth-width)>=1.f){oldWidth=width;return true;}
     return false;
 }
 

@@ -14,7 +14,7 @@
 #include "view/grid_dropdown.hpp"
 #include "utils/image_helper.hpp"
 #include "utils/activity_helper.hpp"
-#include "view/custom_button.hpp"
+#include "view/icon_button.hpp"
 
 #include "core/HistoryManager.hpp"
 #include "core/FavoriteManager.hpp"
@@ -25,6 +25,8 @@
 
 #include "utils/config_helper.hpp"
 #include "utils/library_state.hpp"
+#include "utils/search_input.hpp"
+#include "utils/search_text.hpp"
 
 using namespace brls::literals;
 
@@ -248,6 +250,10 @@ private:
 
 HomeLive::HomeLive() {
     this->inflateFromXMLRes("xml/fragment/home_live.xml");
+    searchField->registerClickAction([this](brls::View*){search();return true;});
+    auto reload=[this](brls::View*){requestLiveList();return true;};
+    static_cast<IconButton*>(getView("home/refresh"))->registerClickAction(reload);
+    registerAction(brls::getStr("iptv/refresh_short"),brls::BUTTON_RB,reload);
     brls::Logger::info("Fragment HomeLive: constructor called");
 
     // Inizializza il flag di validità
@@ -645,8 +651,7 @@ void HomeLive::toggleFavorite() {
 }
 
 void HomeLive::search() {
-    brls::Application::getImeManager()->openForText([this](const std::string& text) { this->filter(text); },
-                                                    "tsvitch/home/common/search"_i18n, "", 32, "", 0);
+    tsvitch::openSearchInput(brls::getStr("hints/search"),"",[this](std::string query){if(query.empty())cancelSearch();else filter(query);});
 }
 
 void HomeLive::cancelSearch() {
@@ -665,16 +670,10 @@ void HomeLive::filter(const std::string& key) {
         auto* datasource = dynamic_cast<DataSourceLiveVideoList*>(recyclingGrid->getDataSource());
         if (datasource) {
             tsvitch::LiveM3u8ListResult filtered;
-            std::string lowerKey = key;
-            std::transform(lowerKey.begin(), lowerKey.end(), lowerKey.begin(),
-                           [](unsigned char c) { return std::tolower(c); });
+            const auto lowerKey=tsvitch::normalizeSearchText(key);
             for (const auto& item : this->channelsList) {
-                std::string lowerTitle = item.title;
-                std::transform(lowerTitle.begin(), lowerTitle.end(), lowerTitle.begin(),
-                               [](unsigned char c) { return std::tolower(c); });
-                std::string lowerGroupTitle = item.groupTitle;
-                std::transform(lowerGroupTitle.begin(), lowerGroupTitle.end(), lowerGroupTitle.begin(),
-                               [](unsigned char c) { return std::tolower(c); });
+                const auto lowerTitle=tsvitch::normalizeSearchText(item.title);
+                const auto lowerGroupTitle=tsvitch::normalizeSearchText(item.groupTitle);
                 if (lowerTitle.find(lowerKey) != std::string::npos ||
                     lowerGroupTitle.find(lowerKey) != std::string::npos)
                     filtered.push_back(item);

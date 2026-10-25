@@ -3,6 +3,7 @@
 #include "utils/iptv_browser.hpp"
 #include "utils/playlist.hpp"
 #include "utils/programme.hpp"
+#include "utils/epg_metadata.hpp"
 #include "tsvitch.h"
 #include "core/HistoryManager.hpp"
 #include <borealis/core/ime.hpp>
@@ -23,96 +24,101 @@
 namespace tsvitch {
 namespace {
 using Json = nlohmann::json;
-using Done = std::function<void(const Json&)>;
-std::string field(const Json& j, const std::string& key) {
-    if (!j.is_object() || !j.contains(key) || j[key].is_null()) return "";
+using Done = std::function<void(const Json &)>;
+std::string field(const Json &j, const std::string &key) {
+    if (!j.is_object() || !j.contains(key) || j[key].is_null())
+        return "";
     return j[key].is_string() ? j[key].get<std::string>() : j[key].is_number_integer() ? j[key].dump() : "";
 }
 std::string baseUrl() {
     auto url = ProgramConfig::instance().getXtreamServerUrl();
-    while (!url.empty() && url.back() == '/') url.pop_back();
+    while (!url.empty() && url.back() == '/')
+        url.pop_back();
     return url;
 }
-void request(const std::string& action, const std::string& argument, Done done, std::function<void()> failed = {}) {
-    auto& config = ProgramConfig::instance();
+void request(const std::string &action, const std::string &argument, Done done,
+             std::function<void()> failed = {}) {
+    auto &config = ProgramConfig::instance();
     if (config.getIntOption(SettingItem::IPTV_MODE) != 1 || baseUrl().empty()) {
         brls::Application::notify(brls::getStr("iptv/s15"));
         return;
     }
-    const auto url = baseUrl() + "/player_api.php?username=" + encodeUrlComponent(config.getXtreamUsername()) +
+    const auto url =
+        baseUrl() + "/player_api.php?username=" + encodeUrlComponent(config.getXtreamUsername()) +
         "&password=" + encodeUrlComponent(config.getXtreamPassword()) + "&action=" + action + argument;
     brls::Application::notify(brls::getStr("iptv/s16"));
-    cpr::GetCallback([done, failed](cpr::Response response) {
-        auto data = Json::parse(response.text, nullptr, false);
-        const bool success = !response.error && response.status_code == 200 && !data.is_discarded();
-        brls::sync([done, failed, data = std::move(data), success]() {
-            if (!success) { if (failed) failed(); else brls::Application::notify(brls::getStr("iptv/s17")); return; }
-            done(data);
-        });
-    }, cpr::Url{url}, cpr::Timeout{45000}, HTTP::HEADERS, HTTP::PROXIES, HTTP::VERIFY);
+    cpr::GetCallback(
+        [done, failed](cpr::Response response) {
+            auto data = Json::parse(response.text, nullptr, false);
+            const bool success = !response.error && response.status_code == 200 && !data.is_discarded();
+            brls::sync([done, failed, data = std::move(data), success]() {
+                if (!success) {
+                    if (failed)
+                        failed();
+                    else
+                        brls::Application::notify(brls::getStr("iptv/s17"));
+                    return;
+                }
+                done(data);
+            });
+        },
+        cpr::Url{url}, cpr::Timeout{45000}, HTTP::HEADERS, HTTP::PROXIES, HTTP::VERIFY);
 }
-void message(const std::string& text) {
-    auto* dialog = new brls::Dialog(text.empty() ? brls::getStr("iptv/s18") : text);
+void message(const std::string &text) {
+    auto *dialog = new brls::Dialog(text.empty() ? brls::getStr("iptv/s18") : text);
     dialog->addButton(brls::getStr("iptv/s10"), [] {});
     dialog->open();
 }
-std::string details(const Json& info) {
+std::string details(const Json &info) {
     std::string result;
-    for (const auto& key : {"name", "plot", "description", "genre", "releasedate", "releaseDate", "rating", "director", "cast", "duration"}) {
+    for (const auto &key : {"name", "plot", "description", "genre", "releasedate", "releaseDate", "rating",
+                            "director", "cast", "duration"}) {
         const auto value = field(info, key);
-        if (!value.empty()) result += std::string(key) + ": " + value + "\n\n";
+        if (!value.empty())
+            result += std::string(key) + ": " + value + "\n\n";
     }
     return result;
 }
-std::string decode64(const std::string& text) {
-    static const std::string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    unsigned int buffer = 0; int bits = 0; std::string result;
-    for (const unsigned char c : text) {
-        if (c == '=') break;
-        const auto index = alphabet.find(c);
-        if (index == std::string::npos) return text;
-        buffer = (buffer << 6) | static_cast<unsigned int>(index); bits += 6;
-        if (bits >= 8) { bits -= 8; result += static_cast<char>((buffer >> bits) & 255); }
+
+} // namespace
+void showProgrammeInfo(const LiveM3u8 &channel) {
+    if (channel.contentType == "catchup") {
+        auto live = channel;
+        live.url = channel.liveUrl;
+        live.title = channel.liveTitle;
+        live.contentType = "live";
+        showProgrammeInfo(live);
+        return;
     }
-    return result;
-}
-}
-void showProgrammeInfo(const LiveM3u8& channel) {
-    if(channel.contentType=="catchup") {
-        auto live=channel;live.url=channel.liveUrl;live.title=channel.liveTitle;live.contentType="live";
-        showProgrammeInfo(live);return;
-    }
-    if(ProgramConfig::instance().getIntOption(SettingItem::IPTV_MODE)==0 && (channel.contentType=="movie"||channel.contentType=="series")) {
-        message(channel.title+"\n\n"+channel.description);return;
+    if (ProgramConfig::instance().getIntOption(SettingItem::IPTV_MODE) == 0 &&
+        (channel.contentType == "movie" || channel.contentType == "series")) {
+        message(channel.title + "\n\n" + channel.description);
+        return;
     }
     if (channel.url.find("/series/") != std::string::npos) {
-        message(channel.title + "\n\n" + channel.description); return;
+        message(channel.title + "\n\n" + channel.description);
+        return;
     }
     if (channel.url.find("/movie/") != std::string::npos) {
-        request("get_vod_info", "&vod_id=" + encodeUrlComponent(channel.id), [channel](const Json& data) {
+        request("get_vod_info", "&vod_id=" + encodeUrlComponent(channel.id), [channel](const Json &data) {
             message(channel.title + "\n\n" + (data.contains("info") ? details(data["info"]) : ""));
         });
         return;
     }
     if (ProgramConfig::instance().getIntOption(SettingItem::IPTV_MODE) != 1 ||
         !ProgramConfig::instance().getSettingItem(SettingItem::XMLTV_URL, std::string{}).empty()) {
-        showXmltvGuide(channel); return;
+        showXmltvGuide(channel);
+        return;
     }
-    request("get_simple_data_table", "&stream_id=" + encodeUrlComponent(channel.id), [channel](const Json& data) {
-        if (!data.contains("epg_listings") || !data["epg_listings"].is_array() || data["epg_listings"].empty()) {
-            presentProgrammeGuide(channel,{}); return;
-        }
-        std::vector<Programme> programmes;
-        for(const auto& item:data["epg_listings"]) {
-            Programme p;p.title=decode64(field(item,"title"));p.description=decode64(field(item,"description"));
-            p.time=field(item,"start")+" - "+field(item,"end");
-            try {p.start=std::stoll(field(item,"start_timestamp"));
-                auto stop=field(item,"stop_timestamp");if(stop.empty())stop=field(item,"end_timestamp");p.end=std::stoll(stop);
-            }catch(...){}
-            programmes.push_back(p);
-        }
-        std::sort(programmes.begin(),programmes.end(),[](const Programme& a,const Programme& b){return a.start<b.start;});
-        presentProgrammeGuide(channel,programmes);
-    });
+    request("get_simple_data_table", "&stream_id=" + encodeUrlComponent(channel.id),
+            [channel](const Json &data) {
+                if (!data.contains("epg_listings") || !data["epg_listings"].is_array() ||
+                    data["epg_listings"].empty()) {
+                    presentProgrammeGuide(channel, {});
+                    return;
+                }
+                auto programmes = parseShortEpg(data);
+                presentProgrammeGuide(channel, programmes);
+            });
 }
-}
+} // namespace tsvitch

@@ -79,5 +79,19 @@
   "pin_category": "Pin category",
   "unpin_category": "Unpin category",
   "pinned": "Pinned",
-  "preferences_error": "Cannot save this change. Check SD card space."
+  "preferences_error": "Cannot save this change. Check SD card space.",
+  "refresh_short": "Refresh",
+  "search_hint": "Enter a title, channel or category",
+  "key_space": "Space",
+  "key_delete": "Delete",
+  "key_system": "System keyboard",
+  "key_clear": "Clear",
+  "keyboard_help": "Arrows: select key · A: type · X: delete · Y: language · L/R: cursor · +: search",
+  "key_language": "Language",
+  "cursor_left": "Previous character",
+  "cursor_right": "Next character",
+  "episode_sources": "Playback sources",
+  "source": "Source",
+  "sources": "sources",
+  "epg_unavailable": "EPG unavailable"
 }

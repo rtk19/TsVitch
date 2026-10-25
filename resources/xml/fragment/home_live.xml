@@ -1,63 +1,8 @@
-<brls:Box
-        axis="row"
-        width="auto"
-        marginTop="10"
-        height="auto">
-        <RecyclingGrid
-                width="270"
-                paddingLeft="10"
-                paddingRight="10"
-                marginTop="20"
-                marginBottom="8"
-                itemHeight="50"
-                preFetchLine="2"
-                spanCount="1"
-                wireframe="false"
-                lineColor="@theme/color/line"
-                lineRight="1"
-                id="dynamic/up/recyclingGrid" />
-        <RecyclingGrid
-                paddingLeft="20"
-                paddingRight="20"
-                marginTop="70"
-                grow="1"
-                spanCount="@style/tsvitch/grid/span/4"
-                itemHeight="200"
-                wireframe="false"
-                preFetchLine="2"
-                id="home/live/recyclingGrid" />
-
-
-        <brls:Box
-                positionType="absolute"
-                positionRight="0"
-                positionTop="0"
-                width="340"
-                height="70"
-                alignItems="center"
-                wireframe="false">
-                <CustomButton
-                        id="home/search"
-                        focusable="true"
-                        highlightCornerRadius="8"
-                        hideHighlightBackground="true"
-                        width="300"
-                        height="35"
-                        backgroundColor="#E3E5E7"
-                        paddingLeft="15"
-                        cornerRadius="6">
-                        <brls:Label
-                                fontSize="14"
-                                textColor="#18191c"
-                                text="@i18n/tsvitch/home/common/search" />
-                        <HintLabel
-                                height="35"
-                                positionType="absolute"
-                                positionRight="15"
-                                fontSize="14"
-                                textColor="#18191c"
-                                text="y" />
-                </CustomButton>
-        </brls:Box>
-
+<brls:Box axis="row" width="auto" marginTop="10" height="auto">
+    <RecyclingGrid width="235" paddingLeft="10" paddingRight="10" marginTop="20" marginBottom="8" itemHeight="66" preFetchLine="2" spanCount="1" lineColor="@theme/color/line" lineRight="1" id="dynamic/up/recyclingGrid"/>
+    <RecyclingGrid paddingLeft="12" paddingRight="12" marginTop="76" grow="1" spanCount="3" itemHeight="216" preFetchLine="2" id="home/live/recyclingGrid"/>
+    <brls:Box positionType="absolute" positionRight="16" positionTop="4" height="60" alignItems="center">
+        <IconButton id="home/search" icon="search" title="@i18n/hints/search" width="170" marginRight="12"/>
+        <IconButton id="home/refresh" icon="refresh" title="@i18n/iptv/refresh_short" width="170"/>
+    </brls:Box>
 </brls:Box>

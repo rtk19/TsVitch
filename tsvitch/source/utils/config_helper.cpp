@@ -390,7 +390,7 @@ void ProgramConfig::load() {
 
     std::set<std::string> i18nData{
         brls::LOCALE_AUTO,    brls::LOCALE_EN_US,   brls::LOCALE_JA, brls::LOCALE_RYU,
-        brls::LOCALE_ZH_HANS, brls::LOCALE_ZH_HANT, brls::LOCALE_Ko, brls::LOCALE_IT,
+        brls::LOCALE_ZH_HANS, brls::LOCALE_ZH_HANT, brls::LOCALE_Ko, brls::LOCALE_IT, "he", brls::LOCALE_PT_BR,
     };
     std::string langData = getSettingItem(SettingItem::APP_LANG, brls::LOCALE_AUTO);
 
