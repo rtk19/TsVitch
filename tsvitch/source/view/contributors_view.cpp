@@ -1,5 +1,6 @@
 #include "view/contributors_view.hpp"
 #include <borealis/core/application.hpp>
+#include <borealis/platforms/desktop/steam_deck.hpp>
 #include <borealis/views/label.hpp>
 #include <borealis/views/image.hpp>
 #include <fstream>

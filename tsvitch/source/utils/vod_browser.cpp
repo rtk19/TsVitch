@@ -4,7 +4,6 @@
 #include <borealis/views/dialog.hpp>
 #include "utils/iptv_browser.hpp"
 #include "utils/xmltv.hpp"
-#include "utils/app_updater.hpp"
 #include "utils/activity_helper.hpp"
 #include "utils/playlist.hpp"
 #include "utils/vod_helpers.hpp"
@@ -229,8 +228,7 @@ Tiles rootTiles() {
     return {
         actionTile(brls::getStr("iptv/s0"),"movies",[]{openCatalogue(false);}),
         actionTile(brls::getStr("iptv/s1"),"series",[]{openCatalogue(true);}),
-        actionTile(brls::getStr("iptv/s3"),"epg",[]{configureEpgSource();}),
-        actionTile(brls::getStr("iptv/s2"),"update",[]{installLatestUpdate();})
+        actionTile(brls::getStr("iptv/s3"),"epg",[]{configureEpgSource();})
     };
 }
 }

@@ -1,3 +1,4 @@
+#include "utils/app_updater.hpp"
 #include <cstdlib>
 #include "utils/release_version.hpp"
 #include <fmt/format.h>
@@ -63,55 +64,6 @@ bool APPVersion::needUpdate(std::string latestVersion) {
 }
 
 void APPVersion::checkUpdate(int delay, bool showUpToDateDialog) {
-    static bool checking_update = false;
-    if (checking_update) return;
-    checking_update = true;
-    brls::Threading::delay(delay, [showUpToDateDialog]() {
-        std::string url =
-            ProgramConfig::instance().getSettingItem(SettingItem::CUSTOM_UPDATE_API, APPVersion::RELEASE_API);
-
-        cpr::GetCallback(
-            [showUpToDateDialog](cpr::Response r) {
-                checking_update = false;
-                try {
-                    if (showUpToDateDialog && r.status_code == 403) {
-                        if (const nlohmann::json res = nlohmann::json::parse(r.text); res.contains("message")) {
-                            auto msg = res.at("message").get<std::string>();
-                            brls::sync([msg]() { brls::Application::notify(msg); });
-                        }
-                        return;
-                    }
-                    if (r.status_code != 200 || r.text.empty()) {
-                        brls::Logger::error("Cannot check update: {} {}", r.status_code, r.error.message);
-                        if (showUpToDateDialog) {
-                            auto msg = r.reason;
-                            brls::sync([msg]() { brls::Application::notify(msg); });
-                        }
-                        return;
-                    }
-                    const nlohmann::json res = nlohmann::json::parse(r.text);
-                    auto info                = res.get<ReleaseNote>();
-                    if (info.tag_name.empty()) {
-                        brls::Logger::error("Cannot parse update info, tag_name is empty");
-                        return;
-                    }
-                    if (!APPVersion::instance().needUpdate(info.tag_name)) {
-                        brls::Logger::info("App is up to date");
-                        if (showUpToDateDialog) {
-                            brls::sync(
-                                []() { brls::Application::notify("tsvitch/setting/tools/others/up2date"_i18n); });
-                        }
-                        return;
-                    }
-                    brls::sync([info]() {
-                        auto container = new LatestUpdate(info);
-                        auto dialog    = new brls::Dialog((brls::Box*)container);
-                        dialog->open();
-                    });
-                } catch (const std::exception& e) {
-                    brls::Logger::error("check update failed: {} {} {}", r.status_code, r.text.c_str(), e.what());
-                }
-            },
-            tsvitch::HTTP::VERIFY, tsvitch::HTTP::PROXIES, cpr::Url{url}, cpr::Timeout{10000});
-    });
+    if (delay <= 0) tsvitch::checkForUpdates(showUpToDateDialog);
+    else brls::Threading::delay(delay, [showUpToDateDialog] { tsvitch::checkForUpdates(showUpToDateDialog); });
 }

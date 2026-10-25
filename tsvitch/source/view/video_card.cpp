@@ -26,7 +26,7 @@ RecyclingGridItemLiveVideoCard::~RecyclingGridItemLiveVideoCard() { brls::cancel
 void RecyclingGridItemLiveVideoCard::setChannel(tsvitch::LiveM3u8 liveData) {
     brls::cancelDelay(programmeTimer);
     this->liveData = liveData;
-    archiveBadge->setText(brls::getStr("iptv/archive_badge"));
+    archiveBadgeText->setText(brls::getStr("iptv/archive_badge"));
     archiveBadge->setVisibility(tsvitch::hasCatchup(liveData)?brls::Visibility::VISIBLE:brls::Visibility::GONE);
     updateProgramme();
     this->labelGroup->setText(liveData.groupTitle);

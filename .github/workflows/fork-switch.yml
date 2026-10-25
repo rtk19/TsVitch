@@ -14,8 +14,21 @@ jobs:
           submodules: recursive
       - run: sudo apt-get update && sudo apt-get install -y libfribidi0
       - run: bash tests/run.sh
-  switch:
+  ui-smoke:
     needs: verify
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libmpv-dev libssl-dev libcurl4-openssl-dev libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev xvfb xauth dbus-x11
+      - run: cmake -B cmake-build-desktop -DCMAKE_BUILD_TYPE=Debug -DPLATFORM_DESKTOP=ON -DANALYTICS=OFF -DSERVER_URL= -DSERVER_TOKEN= -DBRLS_UNITY_BUILD=OFF -DDISABLE_OPENCC=ON -DUSE_SYSTEM_CURL=ON -DUSE_LIBROMFS=OFF
+      - run: cmake --build cmake-build-desktop -j4
+      - run: xvfb-run -a dbus-run-session -- python3 tests/ui_smoke_test.py cmake-build-desktop/TsVitch
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+  switch:
+    needs: [verify, ui-smoke]
     runs-on: ubuntu-latest
     container:
       image: devkitpro/devkita64@sha256:1fc388c3a0d34bd2045a6dadcb1020e069d5f876a187fd705de14b4440c00282
@@ -33,7 +46,8 @@ jobs:
           cp dist/TsVitch.nro dist/switch/TsVitch/TsVitch.nro
           cp RELEASE-NOTES.md INSTALL-he.txt LICENSE resources/font/NotoSansHebrew-OFL.txt dist/
           cd dist
-          zip -r TsVitch-Switch.zip switch RELEASE-NOTES.md INSTALL-he.txt LICENSE NotoSansHebrew-OFL.txt
+          zip -X -r TsVitch-Switch.zip switch RELEASE-NOTES.md INSTALL-he.txt LICENSE NotoSansHebrew-OFL.txt
+          unzip -t TsVitch-Switch.zip
           sha256sum TsVitch.nro TsVitch-Switch.zip > SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:

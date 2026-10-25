@@ -58,5 +58,15 @@
   "episode": "Episode",
   "empty": "No items to display",
   "retry": "Could not load. Select to retry",
-  "save_error": "Cannot save watch progress. Check SD card space."
+  "save_error": "Cannot save watch progress. Check SD card space.",
+  "update_available": "New version available:",
+  "update_changelog": "View changelog",
+  "update_install": "Update",
+  "update_downloading": "Downloading...",
+  "update_verifying": "Verifying and preparing installation...",
+  "update_ready": "Update verified and ready. Restart to install and reopen the new version. Your previous NRO is kept as .bak.",
+  "update_no_relaunch": "This loader cannot relaunch applications. Close and reopen TsVitch to install and use the update.",
+  "update_no_notes": "No release notes supplied.",
+  "update_failed": "Update failed. Your existing application is preserved.",
+  "update_check_failed": "Could not check for updates."
 }

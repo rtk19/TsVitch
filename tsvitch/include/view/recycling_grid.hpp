@@ -132,6 +132,9 @@ public:
 private:
     RecyclingGridDataSource* dataSource = nullptr;
     bool layouted                       = false;
+    bool pendingReload                  = false;
+    bool reloading                      = false;
+    bool layingOut                      = false;
     float oldWidth                      = -1;
 
     bool requestNextPage = false;

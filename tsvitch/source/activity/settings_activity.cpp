@@ -9,6 +9,7 @@
 #include <cpr/cpr.h>
 
 #include "tsvitch.h"
+#include "utils/app_updater.hpp"
 #include "activity/settings_activity.hpp"
 #include "fragment/setting_network.hpp"
 #include "fragment/test_rumble.hpp"
@@ -202,8 +203,7 @@ void SettingsActivity::onContentAvailable() {
     btnReleaseChecker->title->setText("tsvitch/setting/tools/others/release"_i18n + " (" + "hints/current"_i18n + ": " +
                                       version + ")");
     btnReleaseChecker->registerClickAction([](...) -> bool {
-        brls::Application::notify("tsvitch/setting/tools/others/checking_update"_i18n);
-        APPVersion::instance().checkUpdate(0, true);
+        tsvitch::checkForUpdates(true);
         return true;
     });
 

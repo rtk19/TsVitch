@@ -45,7 +45,9 @@
                         height="30"
                         width="30"
                         SVG="@res/svg/ico-favorites-activate.svg" />
-        <brls:Label id="video/card/archive" positionType="absolute" positionTop="8" positionRight="8" fontSize="14" backgroundColor="@theme/color/yellow_1" textColor="@theme/font/yellow_1" padding="4"/>
+        <brls:Box id="video/card/archive/badge" positionType="absolute" positionTop="8" positionRight="8" padding="4" cornerRadius="4" backgroundColor="@theme/color/yellow_1">
+            <brls:Label id="video/card/archive" fontSize="14" textColor="@theme/font/yellow_1"/>
+        </brls:Box>
         <brls:Box
                 margin="10"
                 axis="column">

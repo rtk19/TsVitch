@@ -1,3 +1,9 @@
+## 0.6.4
+
+Fix startup failures while creating channel cards: move catch-up badge padding to its Box container and defer recycler cell rebuilding outside Yoga layout callbacks. Lazily construct inactive tabs. Add a real desktop UI regression run with local M3U/Xtream fixtures and Hebrew, including VOD focus and Settings.
+
+Unify Check for updates in Settings with the NX-torrent-player flow: release/changelog prompt, streamed download with percent/size/bar, on-disk SHA-256/NRO verification, persistent staging, backup and rollback, and loader relaunch with HOME exit disabled. Use a plain ZIP without extra file attributes and validate it before publishing.
+
 ## 0.6.3
 
 Keep one canonical watch record when the same media is opened from legacy favorites/history and the VOD catalogue. Preserve richer series metadata when updating or resetting progress.

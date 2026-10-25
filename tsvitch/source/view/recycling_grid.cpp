@@ -214,6 +214,7 @@ RecyclingGrid::~RecyclingGrid() {
 
 void RecyclingGrid::draw(NVGcontext* vg, float x, float y, float width, float height, brls::Style style,
                          brls::FrameContext* ctx) {
+    if (pendingReload) reloadData();
     itemsRecyclingLoop();
 
     ScrollingFrame::draw(vg, x, y, width, height, style, ctx);
@@ -321,6 +322,10 @@ void RecyclingGrid::setDataSource(RecyclingGridDataSource* source) {
 void RecyclingGrid::reloadData() {
     brls::Logger::debug("RecyclingGrid reloadData");
     if (!layouted) return;
+    if (reloading) { pendingReload=true;return; }
+    reloading=true;
+    struct Reset { bool& flag; ~Reset(){flag=false;} } reset{reloading};
+    pendingReload=false;
 
     auto children = this->contentBox->getChildren();
     for (auto const& child : children) {
@@ -638,6 +643,9 @@ brls::View* RecyclingGrid::getNextCellFocus(brls::FocusDirection direction, brls
 }
 
 void RecyclingGrid::onLayout() {
+    if(layingOut)return;
+    layingOut=true;
+    struct Reset { bool& flag; ~Reset(){flag=false;} } reset{layingOut};
     ScrollingFrame::onLayout();
     auto rect   = this->getFrame();
     float width = rect.getWidth();
@@ -649,7 +657,10 @@ void RecyclingGrid::onLayout() {
     if (checkWidth()) {
         brls::Logger::debug("RecyclingGrid::onLayout reloadData()");
         layouted = true;
-        reloadData();
+        // Creating/removing cells inside a Yoga layout callback causes nested
+        // layouts, repeatedly changing widths and eventually overflowing the stack.
+        // Rebuild only after the layout has settled, in draw or focus resolution.
+        pendingReload=true;
     }
 }
 
@@ -747,6 +758,7 @@ float RecyclingGrid::getPaddingRight() {
 }
 
 brls::View* RecyclingGrid::getDefaultFocus() {
+    if(pendingReload&&!reloading)reloadData();
     if (this->dataSource && this->dataSource->getItemCount() > 0) return ScrollingFrame::getDefaultFocus();
     return nullptr;
 }
@@ -783,9 +795,9 @@ RecyclingGridItem* RecyclingGrid::dequeueReusableCell(std::string identifier) {
                 }
             }
         }
-    } catch (...) {
-        brls::Logger::error("dequeueReusableCell: exception accessing queueMap");
-        return nullptr;
+    } catch (const std::exception& error) {
+        brls::Logger::error("Cannot allocate grid cell {}: {}", identifier, error.what());
+        throw;
     }
 
     if (cell != nullptr) {
@@ -793,6 +805,7 @@ RecyclingGridItem* RecyclingGrid::dequeueReusableCell(std::string identifier) {
         cell->prepareForReuse();
     }
 
+    if (!cell) throw std::logic_error("No registered grid cell factory for " + identifier);
     return cell;
 }
 

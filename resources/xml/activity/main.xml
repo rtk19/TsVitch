@@ -12,6 +12,7 @@
                 tabBackgroundColor="@theme/color/grey_1"
                 tabItemActiveTextColor="@theme/color/tsvitch"
                 disableNavigationDown="true"
+                demandMode="true"
                 defaultTab="0"
                 sidebarPosition="left">
 

@@ -37,7 +37,8 @@ public:
 private:
     size_t programmeTimer = 0;
     BRLS_BIND(brls::Label, labelProgramme, "video/card/label/programme");
-    BRLS_BIND(brls::Label, archiveBadge, "video/card/archive");
+    BRLS_BIND(brls::Box, archiveBadge, "video/card/archive/badge");
+    BRLS_BIND(brls::Label, archiveBadgeText, "video/card/archive");
 tsvitch::LiveM3u8 liveData;
     BRLS_BIND(TextBox, labelTitle, "video/card/label/title");
     BRLS_BIND(brls::Label, labelGroup, "video/card/label/group");
