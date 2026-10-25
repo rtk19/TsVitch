@@ -34,6 +34,9 @@ class LiveActivity : public brls::Activity, public LiveDataRequest {
     void retryRequestData();
 
     void startLive();
+    void changeChannel(int direction);
+    void seekPlayback(double position);
+    void playNextEpisode();
     void setPlaybackEnd(std::function<void()> action);
     std::shared_ptr<bool> playerAlive=std::make_shared<bool>(true);
     uint64_t playbackGeneration=0;

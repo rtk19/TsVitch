@@ -11,6 +11,7 @@ class Label;
 class ProgressSpinner;
 }  // namespace brls
 class MPVCore;
+class NxPlayerControls;
 class VideoProgressSlider;
 class SVGImage;
 class VideoProfile;
@@ -42,6 +43,8 @@ class VideoView : public brls::Box
 {
 public:
     VideoView();
+    void enableNxPlayer();
+    NxPlayerControls* nxPlayer() const { return nxControls; }
 
     ~VideoView() override;
 
@@ -219,6 +222,8 @@ public:
     inline static bool HIGHLIGHT_PROGRESS_BAR = false;
 
 private:
+    friend class NxPlayerControls;
+    NxPlayerControls* nxControls = nullptr;
     bool disabledSliderGesture = false;
 
     bool allowFullscreen  = true;

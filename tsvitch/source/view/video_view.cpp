@@ -20,6 +20,7 @@
 #include "fragment/player_setting.hpp"
 
 #include "view/video_view.hpp"
+#include "view/nx_player_controls.hpp"
 
 #include "view/video_progress_slider.hpp"
 #include "view/svg_image.hpp"
@@ -452,6 +453,14 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float width, float height
 
     mpvCore->draw(brls::Rect(x, y, width, height), alpha);
     if(mpvCore->isPositioning()&&osdCenterBox->getVisibility()!=brls::Visibility::VISIBLE)showLoading();
+    if (nxControls) {
+        nxControls->tick();
+        if(mpvCore->isPositioning())osdCenterBox->frame(ctx);
+        nxControls->frame(ctx);
+        videoProfile->frame(ctx);
+        return;
+    }
+
 
     if (HIGHLIGHT_PROGRESS_BAR && (!drawOSD || is_osd_lock)) {
         drawHighlightProgress(vg, x, y + height, width, alpha);
@@ -611,6 +620,7 @@ void VideoView::pause() { mpvCore->pause(); }
 void VideoView::stop() { mpvCore->stop(); }
 
 void VideoView::togglePlay() {
+    if (nxControls) return nxControls->playPause();
     if (customToggleAction != nullptr) return customToggleAction();
     if (this->mpvCore->isPaused()) {
         if (showReplay) {
@@ -633,6 +643,7 @@ void VideoView::setLastPlayedPosition(int64_t p) { lastPlayedPosition = p; }
 int64_t VideoView::getLastPlayedPosition() const { return lastPlayedPosition; }
 
 void VideoView::showOSD(bool temp) {
+    if (nxControls) return nxControls->show(true);
     if (temp) {
         this->osdLastShowTime = tsvitch::unix_time() + VideoView::OSD_SHOW_TIME;
         this->osd_state       = OSDState::SHOWN;
@@ -647,13 +658,14 @@ void VideoView::showOSD(bool temp) {
 }
 
 void VideoView::hideOSD() {
+    if (nxControls) return nxControls->show(false);
     this->osdLastShowTime = 0;
     this->osd_state       = OSDState::HIDDEN;
 }
 
-bool VideoView::isOSDShown() const { return this->is_osd_shown; }
+bool VideoView::isOSDShown() const { return nxControls ? nxControls->shown() : this->is_osd_shown; }
 
-bool VideoView::isOSDLock() const { return this->is_osd_lock; }
+bool VideoView::isOSDLock() const { return nxControls ? nxControls->locked() : this->is_osd_lock; }
 
 void VideoView::onOSDStateChanged(bool state) {
     if (!state && isChildFocused()) {
@@ -662,6 +674,7 @@ void VideoView::onOSDStateChanged(bool state) {
 }
 
 void VideoView::toggleOSDLock() {
+    if (nxControls) return nxControls->toggleLock();
     is_osd_lock = !is_osd_lock;
     this->osdLockIcon->setImageFromSVGRes(is_osd_lock ? "svg/player-lock.svg" : "svg/player-unlock.svg");
     if (is_osd_lock) {
@@ -686,6 +699,7 @@ void VideoView::toggleOSD() {
 }
 
 void VideoView::showLoading() {
+    if(nxControls&&!mpvCore->isPositioning())nxControls->setBuffering(true);
     centerLabel->setVisibility(brls::Visibility::INVISIBLE);
     osdCenterBox->setVisibility(brls::Visibility::VISIBLE);
 
@@ -696,6 +710,7 @@ void VideoView::showLoading() {
 }
 
 void VideoView::hideLoading() {
+    if(nxControls)nxControls->setBuffering(false);
     osdCenterBox->setVisibility(brls::Visibility::GONE);
 #ifdef __SWITCH__
     HidsysNotificationLedPattern pattern = SwitchHelper::getClearPattern();
@@ -797,7 +812,7 @@ void VideoView::disableProgressSliderSeek(bool disabled) {
     osdSlider->setDisabledPointerGesture(disabled);
 }
 
-void VideoView::setTitle(const std::string& title) { this->videoTitleLabel->setText(title); }
+void VideoView::setTitle(const std::string& title) { this->videoTitleLabel->setText(title); if(nxControls)nxControls->setTitle(title); }
 
 std::string VideoView::getTitle() { return this->videoTitleLabel->getFullText(); }
 
@@ -936,6 +951,7 @@ void VideoView::setFullScreen(bool fs) {
 }
 
 brls::View* VideoView::getDefaultFocus() {
+    if (nxControls) return this;
     if (isFullscreen() && isOSDShown())
         return this->btnToggle;
     else
@@ -969,14 +985,14 @@ void VideoView::registerMpvEvent() {
                 break;
             case MpvEventEnum::MPV_RESUME:
                 this->showReplay = false;
-                this->showOSD(true);
+                if(!nxControls)this->showOSD(true);
                 this->hideLoading();
                 break;
             case MpvEventEnum::MPV_PAUSE:
                 this->showOSD(false);
                 break;
             case MpvEventEnum::START_FILE:
-                this->showOSD(false);
+                if(!nxControls)this->showOSD(false);
                 break;
             case MpvEventEnum::LOADING_START:
                 this->showLoading();
@@ -1103,3 +1119,15 @@ float VideoView::getRealDuration() { return archiveDuration>0?archiveDuration:re
 void VideoView::setOnEndCallback(std::function<void()> callback) { this->onEndCallback = callback; }
 
 void VideoView::togglePlaybackInfo(){const bool show=videoProfile->getVisibility()!=brls::Visibility::VISIBLE;videoProfile->setVisibility(show?brls::Visibility::VISIBLE:brls::Visibility::INVISIBLE);if(show)videoProfile->update();}
+
+void VideoView::enableNxPlayer() {
+    if(nxControls)return;
+    for(auto* gesture:getGestureRecognizers())
+        if(auto* old=dynamic_cast<OsdGestureRecognizer*>(gesture))old->enabled=false;
+    osdTopBox->setVisibility(brls::Visibility::GONE);
+    osdBottomBox->setVisibility(brls::Visibility::GONE);
+    osdLockBox->setVisibility(brls::Visibility::GONE);
+    osdCenterBox2->setVisibility(brls::Visibility::GONE);
+    nxControls=new NxPlayerControls(this);
+    addView(nxControls);
+}

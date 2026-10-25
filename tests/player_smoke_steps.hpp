@@ -1,5 +1,6 @@
 #pragma once
 #include "view/mpv_core.hpp"
+#include "view/nx_player_controls.hpp"
 #include "view/grid_dropdown.hpp"
 #include "view/video_view.hpp"
 #include "view/video_profile.hpp"
@@ -56,6 +57,14 @@ inline bool playerSmokeStep(int step) {
         if (core.isPositioning() || (live && live->archiveReloading))
             return false;
     }
+    static double movieTarget = 0, movieSaved = 0;
+    auto openMovie = [] {
+        tsvitch::LiveM3u8 movie;
+        movie.contentType = "movie";
+        movie.title = "NX controls fixture";
+        movie.url = ProgramConfig::instance().getXtreamServerUrl() + "/movie/fixture/fixture/1.mkv";
+        Intent::openLive({movie}, 0, [] {});
+    };
     switch (step) {
     case 0: {
         auto *grid = dynamic_cast<RecyclingGrid *>(current()->getView("home/live/recyclingGrid"));
@@ -146,8 +155,10 @@ inline bool playerSmokeStep(int step) {
         activate(video(), brls::BUTTON_RT);
         return true;
     case 9:
+        if (core.statsNumber("video-params/w") != 320 || core.statsText("video-codec").empty())
+            throw std::runtime_error("Async playback diagnostics missing");
         activate(video(), brls::BUTTON_RT);
-        activate(video(), brls::BUTTON_NAV_UP);
+        activate(video(), brls::BUTTON_LT);
         return true;
     case 10: {
         auto *grid = dynamic_cast<RecyclingGrid *>(current()->getView("programme/grid"));
@@ -191,11 +202,16 @@ inline bool playerSmokeStep(int step) {
     case 14:
         if (!video() || core.getDouble("time-pos") < 1)
             return false;
+        if (!video()->nxPlayer() || video()->nxPlayer()->isLive())
+            throw std::runtime_error("Recording treated as live");
+        activate(video(), brls::BUTTON_RB);
         static_cast<LiveActivity *>(current())->seekArchive(72.5);
         return true;
     case 15:
         if (!video() || std::abs(video()->playbackPosition() - 73.5) > 3)
             return false;
+        if (std::abs(core.getSpeed() - 1.25) > .01)
+            throw std::runtime_error("Recording R did not change speed");
         core.setProperty("pause", "yes");
         core.setProperty("speed", "1.25");
         static_cast<LiveActivity *>(current())->seekArchive(14.5);
@@ -236,6 +252,144 @@ inline bool playerSmokeStep(int step) {
             core.getString("path").find("/series/fixture/fixture/2.mkv") == std::string::npos ||
             core.getDouble("time-pos") <= 0)
             return false;
+        brls::Application::popActivity();
+        return true;
+    case 20:
+        openMovie();
+        return true;
+    case 21:
+        if (!video() || core.isPositioning() || core.playback_time <= 0)
+            return false;
+        if (video()->nxPlayer()->isLive())
+            throw std::runtime_error("Movie treated as live");
+        video()->nxPlayer()->show(true);
+        activate(video());
+        return true;
+    case 22: {
+        if (!core.isPaused())
+            return false;
+        auto *activity = current();
+        auto *controls = video()->nxPlayer();
+        activate(video(), brls::BUTTON_Y);
+        if (!controls->locked())
+            throw std::runtime_error("Y did not lock");
+        for (auto button :
+             {brls::BUTTON_B, brls::BUTTON_X, brls::BUTTON_RB, brls::BUTTON_LT, brls::BUTTON_RIGHT})
+            activate(video(), button);
+        if (current() != activity || controls->scrubbing() || !controls->locked())
+            throw std::runtime_error("Locked input leaked");
+        return true;
+    }
+    case 23: {
+        if (core.isPaused())
+            return false;
+        activate(video(), brls::BUTTON_Y);
+        auto *controls = video()->nxPlayer();
+        if (controls->locked())
+            throw std::runtime_error("Y did not unlock");
+        movieSaved = core.playback_time;
+        activate(video(), brls::BUTTON_RIGHT);
+        if (!controls->scrubbing() || controls->scrubTarget() < movieSaved + 4)
+            throw std::runtime_error("D-pad did not scrub");
+        activate(video(), brls::BUTTON_B); // cancel, do not close or seek
+        return true;
+    }
+    case 24: {
+        if (!video() || core.isPaused() || video()->nxPlayer()->scrubbing() ||
+            core.playback_time > movieSaved + 3)
+            throw std::runtime_error("B did not cancel scrub and restore playback");
+        activate(video(), brls::BUTTON_RIGHT);
+        movieTarget = video()->nxPlayer()->scrubTarget();
+        activate(video()); // A commits once, resumes
+        return true;
+    }
+    case 25:
+        if (core.isPositioning() || std::abs(core.playback_time - movieTarget) > 2)
+            return false;
+        if (core.isPaused() || video()->nxPlayer()->scrubbing())
+            throw std::runtime_error("A did not commit/resume");
+        activate(video(), brls::BUTTON_RB);
+        activate(video(), brls::BUTTON_RB);
+        activate(video(), brls::BUTTON_LB);
+        activate(video(), brls::BUTTON_NAV_UP);
+        if (!video())
+            throw std::runtime_error("Up unexpectedly opened programme details");
+        activate(video(), brls::BUTTON_X);
+        return true;
+    case 26: {
+        if (core.isPositioning() || std::abs(core.getSpeed() - 1.25) > .01)
+            return false;
+        if (!current()->getView("player/speed"))
+            throw std::runtime_error("Movie speed options missing");
+        // The settings panel has focus: neither stick axis may scrub underneath.
+        if (video())
+            throw std::runtime_error("Player settings did not take focus");
+        brls::Application::popActivity();
+        return true;
+    }
+    case 27: {
+        auto *controls = video()->nxPlayer();
+        if (controls->scrubbing())
+            throw std::runtime_error("Settings caused a seek");
+        const double before = core.playback_time;
+        controls->scrubAxis(.3, .1);
+        if (!controls->scrubbing() || controls->scrubTarget() <= before ||
+            controls->scrubTarget() > before + 1)
+            throw std::runtime_error("Fine stick scrub is not proportional");
+        controls->cancelSeek();
+        movieSaved = core.playback_time;
+        brls::Application::popActivity();
+        return true;
+    }
+    case 28:
+        openMovie();
+        return true;
+    case 29:
+        if (!video() || core.isPositioning() || core.playback_time < movieSaved - 1)
+            return false;
+        if (core.playback_time > movieSaved + 4)
+            throw std::runtime_error("VOD resume position drifted");
+        activate(video(), brls::BUTTON_X);
+        return true;
+    case 30:
+        activate(current()->getView("player/audio-boost"));
+        brls::Application::popActivity();
+        return true;
+    case 31:
+        if (core.getString("af").find("nx-boost") == std::string::npos)
+            return false;
+        brls::Application::popActivity();
+        return true;
+    case 32: {
+        tsvitch::LiveM3u8ListResult episodes;
+        for (int i = 11; i <= 13; ++i) {
+            tsvitch::LiveM3u8 episode;
+            episode.contentType = "series";
+            episode.seriesTitle = "Manual next fixture";
+            episode.season = "1";
+            episode.episode = std::to_string(i);
+            episode.title = "Episode " + episode.episode;
+            episode.url = ProgramConfig::instance().getXtreamServerUrl() + "/series/fixture/fixture/" +
+                          episode.episode + ".mkv";
+            episodes.push_back(episode);
+        }
+        Intent::openLive(episodes, 0, [] {});
+        return true;
+    }
+    case 33:
+        if (!video() || core.isPositioning() || !video()->nxPlayer()->nextShown())
+            return false;
+        activate(video());
+        return true;
+    case 34:
+        if (core.filepath.find("/13.mkv") != std::string::npos)
+            throw std::runtime_error("Next card advanced twice");
+        if (core.isPositioning() || core.filepath.find("/12.mkv") == std::string::npos ||
+            core.playback_time <= 0)
+            return false;
+        for (const auto &action : video()->getActions())
+            if (action->getButton() == brls::BUTTON_RSB)
+                throw std::runtime_error("Right stick click is bound");
         brls::Application::popActivity();
         return true;
     default:

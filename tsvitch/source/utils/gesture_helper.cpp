@@ -35,6 +35,7 @@ static inline OsdGestureType updateGestureType(OsdGestureType osdGestureType) {
 
 brls::GestureState OsdGestureRecognizer::recognitionLoop(brls::TouchState touch, brls::MouseState mouse,
                                                          brls::View* view, brls::Sound* soundToPlay) {
+    if (!enabled) return brls::GestureState::FAILED;
     brls::TouchPhase phase = touch.phase;
     brls::Point position   = touch.position;
 

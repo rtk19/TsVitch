@@ -110,5 +110,17 @@
   "recover_video": "Recover video · software decoder",
   "on_now": "Now",
   "upcoming": "Upcoming",
-  "playing_archive": "Playing recording"
+  "playing_archive": "Playing recording",
+  "player_lock": "Lock controls",
+  "player_pause": "Play / pause",
+  "player_seek_back": "Seek backward",
+  "player_seek_forward": "Seek forward",
+  "player_slower": "Slower / previous channel",
+  "player_faster": "Faster / next channel",
+  "player_favourite": "Toggle favourite",
+  "next_episode": "Next episode",
+  "audio_boost": "Boost quiet audio (handheld)",
+  "external_subtitle": "Add subtitle from URL or file",
+  "subtitle_location_hint": "https://… or sdmc:/… .srt / .ass / .vtt",
+  "player_buffering": "Buffering…"
 }

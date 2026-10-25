@@ -510,6 +510,14 @@ void MPVCore::init() {
     check_error(mpvObserveProperty(mpv, 19, "saturation", MPV_FORMAT_DOUBLE));
     check_error(mpvObserveProperty(mpv, 20, "gamma", MPV_FORMAT_DOUBLE));
     check_error(mpvObserveProperty(mpv, 21, "hue", MPV_FORMAT_DOUBLE));
+    // NX's diagnostics read async snapshots. A stalled network demuxer must
+    // never block the rendering thread with synchronous property requests.
+    for(const auto* key:{"file-size","file-format","demuxer-cache-duration","demuxer-cache-state/fw-bytes",
+        "video-params/w","video-params/h","container-fps","video-codec","video-params/pixelformat",
+        "hwdec-current","video-bitrate","decoder-frame-drop-count","frame-drop-count","avsync",
+        "audio-codec","audio-params/channel-count","audio-params/samplerate","audio-bitrate"})
+        check_error(mpvObserveProperty(mpv,100,key,MPV_FORMAT_STRING));
+
 
 #ifdef MPV_SW_RENDER
     mpv_render_param params[]{{MPV_RENDER_PARAM_API_TYPE, const_cast<char *>(MPV_RENDER_API_TYPE_SW)},
@@ -561,7 +569,7 @@ void MPVCore::init() {
             AUTO_PLAY = ProgramConfig::instance().getBoolOption(SettingItem::PLAYER_AUTO_PLAY);
 
             auto timeNow = std::chrono::system_clock::now();
-            if (playing && timeNow < (sleepTime + std::chrono::seconds(120))) {
+            if (!nxNavigationActive && playing && timeNow < (sleepTime + std::chrono::seconds(120))) {
                 resume();
             }
         } else {
@@ -1232,6 +1240,11 @@ void MPVCore::eventMainLoop() {
                 if (data)
                     video_hue = *(double *)data;
                 break;
+            case 100: {
+                auto* property=static_cast<mpv_event_property*>(event->data);
+                if(property->name)statsSnapshot[property->name]=data&&*static_cast<char**>(data)?*static_cast<char**>(data):"";
+                break;
+            }
             default:
                 break;
             }
@@ -1634,4 +1647,11 @@ bool MPVCore::cachedSeek(double seconds) {
             }
     mpvFreeNodeContents(&node);
     return contains;
+}
+
+std::string MPVCore::statsText(const std::string& key) const {
+    auto found=statsSnapshot.find(key);return found==statsSnapshot.end()?std::string{}:found->second;
+}
+double MPVCore::statsNumber(const std::string& key) const {
+    try{return std::stod(statsText(key));}catch(...){return 0;}
 }

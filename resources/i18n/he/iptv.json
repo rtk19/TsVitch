@@ -110,5 +110,17 @@
   "recover_video": "שחזור תמונה · פענוח תוכנה",
   "on_now": "משודר עכשיו",
   "upcoming": "בהמשך",
-  "playing_archive": "ההקלטה המתנגנת"
+  "playing_archive": "ההקלטה המתנגנת",
+  "player_lock": "נעילת פקדים",
+  "player_pause": "ניגון / השהיה",
+  "player_seek_back": "דילוג אחורה",
+  "player_seek_forward": "דילוג קדימה",
+  "player_slower": "האטה / הערוץ הקודם",
+  "player_faster": "האצה / הערוץ הבא",
+  "player_favourite": "שינוי מועדף",
+  "next_episode": "הפרק הבא",
+  "audio_boost": "הגברת שמע חלש (מצב נייד)",
+  "external_subtitle": "הוספת כתוביות מקישור או מקובץ",
+  "subtitle_location_hint": "https://… או sdmc:/… .srt / .ass / .vtt",
+  "player_buffering": "טוען נתונים…"
 }

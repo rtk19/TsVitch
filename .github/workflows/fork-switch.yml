@@ -47,9 +47,9 @@ jobs:
           mkdir -p dist/switch/TsVitch
           cp cmake-build-switch/TsVitch.nro dist/TsVitch.nro
           cp dist/TsVitch.nro dist/switch/TsVitch/TsVitch.nro
-          cp RELEASE-NOTES.md INSTALL-he.txt LICENSE resources/font/NotoSansHebrew-OFL.txt resources/font/LiberationSans-LICENSE.txt resources/font/DejaVu-LICENSE.txt dist/
+          cp RELEASE-NOTES.md INSTALL-he.txt LICENSE resources/font/NotoSansHebrew-OFL.txt resources/font/LiberationSans-LICENSE.txt resources/font/DejaVu-LICENSE.txt resources/licenses/nx-torrent-player-LICENSE.txt dist/
           cd dist
-          zip -X -r TsVitch-Switch.zip switch RELEASE-NOTES.md INSTALL-he.txt LICENSE NotoSansHebrew-OFL.txt LiberationSans-LICENSE.txt DejaVu-LICENSE.txt
+          zip -X -r TsVitch-Switch.zip switch RELEASE-NOTES.md INSTALL-he.txt LICENSE NotoSansHebrew-OFL.txt LiberationSans-LICENSE.txt DejaVu-LICENSE.txt nx-torrent-player-LICENSE.txt
           unzip -t TsVitch-Switch.zip
           sha256sum TsVitch.nro TsVitch-Switch.zip > SHA256SUMS
       - uses: actions/upload-artifact@v4

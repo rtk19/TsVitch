@@ -1,6 +1,7 @@
 #include "utils/catchup.hpp"
 #include "utils/epg_metadata.hpp"
 #include "utils/subtitle_style.hpp"
+#include "utils/nx_player_controls.hpp"
 #include <cassert>
 #include <iostream>
 using namespace tsvitch;
@@ -19,5 +20,12 @@ int main(){
     nlohmann::json payload={{"epg_listings",nlohmann::json::array({{{"title","Past"},{"start_timestamp","1700000000000"},{"stop_timestamp","1700000060000"}},{{"title","Now"},{"start","2026-10-25 09:55:00"},{"end","2026-10-25 11:00:00"},{"now_playing",1}}})}};
     auto parsed=parseShortEpg(payload);assert(parsed.size()==2&&parsed[0].start==1700000000&&parsed[1].nowPlaying);assert(currentProgrammeIndex(parsed,1700000000)==1);assert(programmeTime(parsed[1]).find("2026-")==std::string::npos);
     auto style=subtitle_style::background(true);assert(std::string(style[0].second)=="background-box"&&std::string(style[1].second)=="#99000000");
+    assert(nxplayer::stepSpeed(2,1)==2&&nxplayer::stepSpeed(.5,-1)==.5);
+    assert(nxplayer::stepSpeed(1,1)==1.25&&nxplayer::stepSpeed(1,-1)==.75&&nxplayer::stepSpeed(1.74,1)==2);
+    nxplayer::Scrub scrub;scrub.begin(30,90,true);scrub.move(5);assert(scrub.target==35&&scrub.wasPaused);
+    scrub.move(-100);assert(scrub.target==0);scrub.move(1000);assert(scrub.target==90);
+    scrub.begin(30,900,false);scrub.stick(.1,.1);assert(scrub.target==30);
+    scrub.stick(.3,.1);assert(scrub.target>30&&scrub.target<31);
+    scrub.stick(1,100);assert(scrub.target<60); // capped frame delta after a hitch
     std::cout<<"Catch-up minute boundaries/subsecond targets, provider current EPG flags and subtitle style passed\n";
 }

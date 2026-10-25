@@ -274,8 +274,8 @@
 
         <VideoProfile
                 id="video/profile"
-                positionTop="22"
-                positionLeft="22"
+                positionTop="40"
+                positionLeft="40"
                 positionType="absolute"
                 visibility="invisible" />
 

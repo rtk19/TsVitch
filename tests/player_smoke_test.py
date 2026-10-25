@@ -36,7 +36,7 @@ with tempfile.TemporaryDirectory(prefix='tsvitch-player-') as directory:
                 archive_requests.append(segment);body=(work/f'{min(2,max(0,segment))}.ts').read_bytes();content='video/mp2t'
             elif path.path.startswith('/series/'):
                 body=(work/'short.mkv').read_bytes();content='video/x-matroska'
-            elif path.path.startswith('/live/'):
+            elif path.path.startswith(('/live/','/movie/')):
                 body=(work/'tracks.mkv').read_bytes();content='video/x-matroska'
             else:
                 now=int(time.time())
@@ -75,7 +75,7 @@ with tempfile.TemporaryDirectory(prefix='tsvitch-player-') as directory:
                     with (repo/'cmake-smoke/player-gdb.log').open('w') as trace:
                         subprocess.run(['gdb','-batch','-ex','set pagination off','-p',str(process.pid),'-ex','thread apply all bt 14'],stdout=trace,stderr=subprocess.STDOUT)
             threading.Thread(target=debug_stack,daemon=True).start()
-        try:output,_=process.communicate(timeout=80)
+        try:output,_=process.communicate(timeout=120)
         except subprocess.TimeoutExpired:
             process.kill();process.communicate();raise
         result=subprocess.CompletedProcess(process.args,process.returncode,stdout=output)
@@ -83,7 +83,7 @@ with tempfile.TemporaryDirectory(prefix='tsvitch-player-') as directory:
         assert result.returncode==0,(result.returncode,result.stdout[-4000:],trace[-6000:])
         assert 'PLAYER_SMOKE_PASSED' in trace,trace[-6000:]
         assert 0 in archive_requests and 1 in archive_requests,archive_requests
-        print('Player passed: Hebrew audio/subtitles, delay/background, EPG current marker, channel focus after next/close, catch-up forward/back/rapid seeks, pause/speed preservation and next-episode autoplay',flush=True)
+        print('Player passed: Hebrew audio/subtitles, delay/background, EPG current marker, channel focus after next/close, catch-up forward/back/rapid seeks, pause/speed preservation, next-episode autoplay, NX lock/scrub/commit/cancel/speed controls, VOD resume and audio boost',flush=True)
     except Exception:
         import shutil
         shutil.copy2(work/'tracks.mkv',repo/'cmake-smoke/tracks.mkv')

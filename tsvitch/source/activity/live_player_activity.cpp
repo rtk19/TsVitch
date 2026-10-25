@@ -27,6 +27,7 @@
 #include "utils/playback_position_manager.hpp"
 
 #include "view/video_view.hpp"
+#include "view/nx_player_controls.hpp"
 
 #include "view/grid_dropdown.hpp"
 #include "view/qr_image.hpp"
@@ -61,110 +62,23 @@ void LiveActivity::onContentAvailable() {
     MPVCore::instance().setAspect(
         ProgramConfig::instance().getSettingItem(SettingItem::PLAYER_ASPECT, std::string{"-1"}));
 
-    this->video->registerAction("", brls::BUTTON_B, [this](...) {
-        if (this->video->isOSDLock()) {
-            this->video->toggleOSD();
-        } else {
-            if (this->video->getTvControlMode() && this->video->isOSDShown()) {
-                this->video->toggleOSD();
-                return true;
-            }
-            brls::Logger::debug("exit live");
-            brls::Application::popActivity();
-        }
-        return true;
-    });
-
-    this->video->registerAction(brls::getStr("iptv/player_options"), brls::BUTTON_X, [this](brls::View *) {
-        if (!video->isOSDLock()) {
-            video->hideOSD();
-            brls::Application::pushActivity(new brls::Activity(new PlayerSetting));
-        }
-        return true;
-    });
-    this->video->registerAction(brls::getStr("iptv/player_info"), brls::BUTTON_RT, [this](brls::View *) {
-        if (!video->isOSDLock())
-            video->togglePlaybackInfo();
-        return true;
-    });
-    this->video->registerAction(
-        brls::getStr("iptv/s24"), brls::BUTTON_NAV_UP,
+    video->enableNxPlayer();
+    auto *controls = video->nxPlayer();
+    controls->onBack = [] { brls::Application::popActivity(); };
+    controls->onProgramme = [this] {
+        if (!isAd)
+            tsvitch::showProgrammeInfo(liveData);
+    };
+    controls->onChannel = [this](int direction) { changeChannel(direction); };
+    controls->onSeek = [this](double position) { seekPlayback(position); };
+    video->registerAction(
+        brls::getStr("iptv/watch_live"), brls::BUTTON_LSB,
         [this](brls::View *) {
-            if (!this->isAd && !this->video->isOSDLock())
-                tsvitch::showProgrammeInfo(this->liveData);
+            if (!video->nxPlayer()->blocked() && liveData.contentType == "catchup")
+                returnToLive();
             return true;
         },
         true);
-
-    this->video->registerAction(brls::getStr("iptv/watch_live"), brls::BUTTON_LSB, [this](brls::View *) {
-        if (liveData.contentType == "catchup")
-            returnToLive();
-        else
-            tsvitch::showProgrammeInfo(liveData);
-        return true;
-    });
-    // Button R go to next channel
-    this->video->registerAction("hints/next_channel"_i18n, brls::BUTTON_RB, [this](...) {
-        if (!this->isAd) {
-            if (this->video->isOSDLock()) {
-                this->video->toggleOSD();
-            } else {
-                if (currentChannelIndex + 1 < channelList.size()) {
-                    savePlaybackPosition();
-                    this->video->stop();
-
-                    currentChannelIndex++;
-                    this->liveData = channelList[currentChannelIndex];
-                    this->video->setTitle(liveData.title);
-                    this->video->setFavoriteIcon(FavoriteManager::get()->isFavorite(liveData.url));
-                    this->getAdUrlFromServer([&](const std::string &adUrl) {
-                        brls::Logger::debug("LiveActivity: adUrl: {}", adUrl);
-                        if (!adUrl.empty()) {
-                            this->startAd(adUrl);
-                        } else {
-                            this->startLive();
-                        }
-                    });
-                } else {
-                    // exit live
-                    brls::Logger::debug("exit live");
-                    brls::Application::popActivity();
-                }
-            }
-        }
-        return true;
-    });
-    // Button L go to previous channel
-    this->video->registerAction("hints/previous_channel"_i18n, brls::BUTTON_LB, [this](...) {
-        if (!this->isAd) {
-            if (this->video->isOSDLock()) {
-                this->video->toggleOSD();
-            } else {
-                if (currentChannelIndex > 0) {
-                    savePlaybackPosition();
-                    this->video->stop();
-
-                    currentChannelIndex--;
-                    this->liveData = channelList[currentChannelIndex];
-                    this->video->setTitle(liveData.title);
-                    this->video->setFavoriteIcon(FavoriteManager::get()->isFavorite(liveData.url));
-                    this->getAdUrlFromServer([&](const std::string &adUrl) {
-                        brls::Logger::debug("LiveActivity: adUrl: {}", adUrl);
-                        if (!adUrl.empty()) {
-                            this->startAd(adUrl);
-                        } else {
-                            this->startLive();
-                        }
-                    });
-                } else {
-                    // exit live
-                    brls::Logger::debug("exit live");
-                    brls::Application::popActivity();
-                }
-            }
-        }
-        return true;
-    });
 
     this->video->hideSubtitleSetting();
     this->video->hideVideoRelatedSetting();
@@ -221,6 +135,18 @@ void LiveActivity::startAd(std::string adUrl) {
 void LiveActivity::startLive() {
     ++playbackGeneration;
     this->isAd = false;
+    if (auto *controls = video->nxPlayer()) {
+        const auto alive = playerAlive;
+        const auto generation = playbackGeneration;
+        const bool hasNext = tsvitch::hasNextEpisode(channelList, currentChannelIndex);
+        controls->configure(tsvitch::isLiveMedia(liveData), liveData.title,
+                            hasNext ? channelList[currentChannelIndex + 1].title : std::string{},
+                            hasNext ? std::function<void()>([this, alive, generation] {
+                                if (*alive && generation == playbackGeneration)
+                                    playNextEpisode();
+                            })
+                                    : std::function<void()>{});
+    }
     trackReloading = false;
     archiveReloading = false;
     if (tsvitch::isLiveMedia(liveData))
@@ -325,7 +251,7 @@ void LiveActivity::startLive() {
                 restorePending = false;
                 const auto saved = tsvitch::watchStore().progress(liveData).resume();
                 if (saved > 0)
-                    MPVCore::instance().seek(saved);
+                    seekPlayback(saved);
             }
         }
     });
@@ -737,7 +663,11 @@ LiveActivity::~LiveActivity() {
         onCloseCallback();
 }
 
-void LiveActivity::onResume() { installTrackRecovery(); }
+void LiveActivity::onResume() {
+    installTrackRecovery();
+    if(video&&video->nxPlayer()&&!MPVCore::instance().isPositioning())
+        video->nxPlayer()->show(MPVCore::instance().isPaused()||video->nxPlayer()->scrubbing());
+}
 void LiveActivity::installTrackRecovery() {
     auto &core = MPVCore::instance();
     core.trackChangeOwner = this;
@@ -780,4 +710,54 @@ void LiveActivity::setPlaybackEnd(std::function<void()> action) {
                 action();
         });
     });
+}
+
+void LiveActivity::changeChannel(int direction) {
+    if (isAd || !tsvitch::isLiveMedia(liveData))
+        return;
+    const auto next = static_cast<int64_t>(currentChannelIndex) + direction;
+    if (next < 0 || next >= static_cast<int64_t>(channelList.size()))
+        return;
+    savePlaybackPosition();
+    video->stop();
+    currentChannelIndex = next;
+    liveData = channelList[currentChannelIndex];
+    video->setTitle(liveData.title);
+    video->setFavoriteIcon(FavoriteManager::get()->isFavorite(liveData.url));
+    startLive();
+}
+void LiveActivity::playNextEpisode() {
+    if (!tsvitch::hasNextEpisode(channelList, currentChannelIndex))
+        return;
+    mediaFinished = true;
+    const auto duration = MPVCore::instance().duration;
+    tsvitch::watchStore().update(liveData, duration, duration, true);
+    liveData = channelList[++currentChannelIndex];
+    video->setTitle(liveData.title);
+    video->setFavoriteIcon(FavoriteManager::get()->isFavorite(liveData.url));
+    startLive();
+}
+void LiveActivity::seekPlayback(double position) {
+    if (isAd || tsvitch::isLiveMedia(liveData))
+        return;
+    if (liveData.contentType == "catchup") {
+        seekArchive(position);
+        return;
+    }
+    auto &core = MPVCore::instance();
+    if (core.isPositioning())
+        return;
+    if (core.getFlag("seekable") || core.cachedSeek(position)) {
+        core.seek(std::to_string(position));
+        return;
+    }
+    trackAudio = core.getString("aid");
+    trackSubtitle = core.getString("sid");
+    trackPaused = core.isPaused();
+    trackSpeed = core.getSpeed();
+    trackReloading = true;
+    core.preparePosition(position, trackPaused, trackSpeed);
+    video->showLoading();
+    core.setUrl(liveData.url,
+                "start=" + std::to_string(position) + ",aid=" + trackAudio + ",sid=" + trackSubtitle);
 }

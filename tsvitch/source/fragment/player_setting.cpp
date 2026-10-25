@@ -20,6 +20,8 @@
 #include "view/button_close.hpp"
 
 #include "view/video_view.hpp"
+#include "view/nx_player_controls.hpp"
+#include "utils/search_input.hpp"
 #include "view/selector_cell.hpp"
 #include "view/svg_image.hpp"
 #include "view/mpv_core.hpp"
@@ -310,6 +312,10 @@ std::string trackLabel(const MediaTrack &track) {
 }
 } // namespace
 void PlayerSetting::setupPlaybackOptions() {
+    bool live=false;
+    for(auto* activity:brls::Application::getActivitiesStack())
+        if(auto* player=dynamic_cast<VideoView*>(activity->getView("video")))
+            if(player->nxPlayer())live=player->nxPlayer()->isLive();
     auto *parent = static_cast<brls::Box *>(btnSleep->getParent());
     auto add = [&](const std::string &id, const std::string &key, std::function<void()> action) {
         auto *row = new PlayerOption(id, brls::getStr("iptv/" + key));
@@ -405,7 +411,7 @@ void PlayerSetting::setupPlaybackOptions() {
             },
             selected);
     });
-    add("player/speed", "playback_speed", [] {
+    if(!live)add("player/speed", "playback_speed", [] {
         const std::vector<std::string> labels = {"0.5×", "0.75×", "1×", "1.25×", "1.5×", "1.75×", "2×"};
         const std::vector<double> values = {.5, .75, 1, 1.25, 1.5, 1.75, 2};
         int selected = 2;
@@ -421,12 +427,34 @@ void PlayerSetting::setupPlaybackOptions() {
             },
             selected);
     });
+    add("player/audio-boost","audio_boost",[this]{
+        auto& config=ProgramConfig::instance();
+        config.setSettingItem(SettingItem::AUDIO_BOOST,!config.getSettingItem(SettingItem::AUDIO_BOOST,false));
+        updatePlaybackOptions();
+    });
+    add("player/external-subtitle","external_subtitle",[] {
+        tsvitch::openSearchInput(brls::getStr("iptv/external_subtitle"),"",[](std::string path){
+            if(path.rfind("https://",0)!=0&&path.rfind("http://",0)!=0&&path.rfind("sdmc:/",0)!=0&&path.rfind("/",0)!=0){
+                brls::Application::notify(brls::getStr("iptv/subtitle_location_hint"));return;
+            }
+            auto& core=MPVCore::instance();
+            core.command_async("sub-add",path,"cached");core.command_async("set","sub-visibility","yes");
+        });
+    })->detail(brls::getStr("iptv/subtitle_location_hint"));
     add("player/deinterlace", "deinterlace", [this] {
         auto &core = MPVCore::instance();
         core.setProperty("deinterlace", core.getFlag("deinterlace") ? "no" : "yes");
         updatePlaybackOptions();
     });
-    add("player/decoder", "recover_video", [] { MPVCore::instance().setProperty("hwdec", "no"); });
+    add("player/decoder", "recover_video", [] {
+        auto& core=MPVCore::instance();
+        core.command_async("set","hwdec","no");
+        const auto owner=core.trackChangeOwner;
+        brls::delay(100,[owner]{
+            auto& active=MPVCore::instance();
+            if(active.trackChangeOwner==owner&&active.onTrackChange)active.onTrackChange();
+        });
+    });
     updatePlaybackOptions();
 }
 void PlayerSetting::updatePlaybackOptions() {
@@ -446,13 +474,14 @@ void PlayerSetting::updatePlaybackOptions() {
         static_cast<PlayerOption *>(getView("player/" + type))->detail(label);
     }
     auto set = [this](const char *id, const std::string &text) {
-        static_cast<PlayerOption *>(getView(id))->detail(text);
+        if(auto* row=dynamic_cast<PlayerOption*>(getView(id)))row->detail(text);
     };
     set("player/sub-background",
         brls::getStr(ProgramConfig::instance().getSettingItem(SettingItem::SUBTITLE_BACKGROUND, false)
                          ? "hints/on"
                          : "hints/off"));
     set("player/sub-size", fmt::format("{:.0f}%", core.getDouble("sub-scale") * 100));
+    set("player/audio-boost",brls::getStr(ProgramConfig::instance().getSettingItem(SettingItem::AUDIO_BOOST,false)?"hints/on":"hints/off"));
     set("player/sub-delay", fmt::format("{:+.2f} s · L / R", core.getDouble("sub-delay")));
     set("player/audio-delay", fmt::format("{:+.2f} s", core.getDouble("audio-delay")));
     set("player/speed", fmt::format("{:.2f}×", core.getDouble("speed")));

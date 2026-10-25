@@ -40,6 +40,7 @@ typedef brls::Event<OsdGestureStatus> OsdGestureEvent;
 
 class OsdGestureRecognizer : public brls::GestureRecognizer, public Presenter {
 public:
+    bool enabled = true;
     explicit OsdGestureRecognizer(const OsdGestureEvent::Callback& respond);
 
     brls::GestureState recognitionLoop(brls::TouchState touch, brls::MouseState mouse, brls::View* view,

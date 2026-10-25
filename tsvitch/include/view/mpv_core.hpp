@@ -153,6 +153,10 @@ public:
     int64_t getVolume() const;
 
     bool isValid();
+    bool nxNavigationActive=false;
+    std::unordered_map<std::string,std::string> statsSnapshot;
+    std::string statsText(const std::string& key) const;
+    double statsNumber(const std::string& key) const;
 
     std::string getString(const std::string &key);
     double getDouble(const std::string &key);
