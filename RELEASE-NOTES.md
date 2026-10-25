@@ -1,34 +1,29 @@
-# TsVitch 0.5.1 — Refael Bar
+# TsVitch 0.6.0 — Refael Bar
 
-## התקנה ושימוש
+## מה השתנה
 
-חלצו את `TsVitch-Switch.zip` לשורש כרטיס הזיכרון, או החליפו את קובץ ה־NRO הקיים. הפעילו במצב יישום מלא. ההגדרות הקיימות נשמרות.
+- הוסר השימוש בלחיצה על הסטיק הימני. פתיחת EPG מכרטיס ערוץ הועברה ל־**ZL**. חץ למעלה בנגן ממשיך לפתוח את פרטי התוכן והמדריך.
+- תוקן מסלול החצים בסרגל הצד: ניתן להגיע ללשונית VOD בחצים ולהיכנס אליה עם A או ימינה, בלי טאץ׳.
+- מסכי ה־VOD מוצגים כקוביות: סרטים/סדרות ← קטגוריה ← סדרה ← עונה ← פרק. החצים מנווטים, **A** בוחר, **B** חוזר. כפתור חזרה זמין גם בטאץ׳. הפוקוס נשמר כשחוזרים למסך הקודם.
+- **נוספו לאחרונה** ו־**נצפו לאחרונה** מופיעים בנפרד בסרטים ובסדרות. בסדרות, היסטוריית הצפייה מרכזת את הפרקים תחת הסדרה המתאימה.
+- סרטים ופרקים מציגים התקדמות וזמן עצירה בתוך הקובייה. A ממשיך אוטומטית מהמיקום השמור. **X** פותח פרטים ואפשרות להתחיל מחדש.
+- שמירת מיקום נעשית כל 15 שניות בזמן הניגון, בהשהיה, במעבר תוכן וביציאה. אין פקיעה לאחר 30 יום. נתוני המיקום מהגרסאות הקודמות נקראים לצורך המשך צפייה.
+- סיום תוכן נרשם כ״נצפה״ בלי להחזיר מיקום ישן. סרט שנצפה עד הסוף מתחיל מההתחלה בבחירה חוזרת.
+- בסיום פרק מופעל הפרק הבא לפי סדר עונות ופרקים, גם בין עונות. התור כולל את כל פרקי הסדרה גם כשנבחר פרק מעונה מסוימת או מתוך תוצאות חיפוש. סרטים אינם עוברים אוטומטית לסרט אחר.
+- השינויים חלים על Xtream ו־M3U. תמיכת עברית, אודיו, כתוביות, XMLTV, Catch-up והעדכון מהפורק נשמרו.
 
-- התמיכה בסרטים, בסדרות, בקטגוריות, בחיפוש, בתקצירים, בשמע ובכתוביות זמינה גם במצב M3U, לפי הנתונים שנכללו ברשימה.
-- שם התוכנית המשודרת כעת מוצג בכרטיס הערוץ. תג **הקלטות** מסמן ערוץ שמצהיר על תמיכה ב־Catch-up מוכר.
-- **חץ למעלה בנגן**, או **לחיצה על הסטיק הימני בכרטיס ערוץ**, פותחים EPG. בחרו תוכנית זמינה ואז **צפייה בהקלטה**.
-- ניתן לבחור הקלטה גם לפי תאריך, שעה ומשך צפייה, ללא תלות בכך שהתוכנית מופיעה ב־EPG.
-- בניגון הקלטה, ציר ההתקדמות מייצג את כל משך התוכנית. ניתן להתקדם ולחזור באמצעות הסרגל ופקדי החיפוש של הנגן. אם הזרם אינו תומך בחיפוש מקומי, הנגן מבקש מהספק זרם מהמועד שנבחר.
-- **לחיצה על הסטיק השמאלי** מחזירה מיד לשידור החי. L/R עוברים בין ההקלטות הזמינות ברשימת התוכניות שנפתחה. בסיום הקלטה מופעלת הבאה ברשימה, ובסיום הרשימה חוזרים לשידור החי.
-- שם המפתח במידע היישום וב־NACP הוא **Refael Bar**. זכויות וקרדיטים של הפרויקט המקורי נשמרים.
+## התקנה ועדכון
 
-## Implementation
+חלצו את `TsVitch-Switch.zip` לשורש כרטיס הזיכרון או החליפו את ה־NRO הקיים. אפשר גם להתקין את העדכון מתוך היישום. הפעילו במצב יישום מלא. ההגדרות הקיימות נשמרות.
 
-- One shared playback model preserves M3U and Xtream VOD, series, EPG and archive metadata through history, favorites and the versioned channel cache.
-- M3U parsing supports quoted attributes, commas inside attributes, relative URLs, entries without tvg-id, EXTGRP, automatic XMLTV discovery from x-tvg-url/url-tvg, descriptions, explicit media types, positive VOD durations, series/season/episode attributes and SxxExx title detection.
-- M3U VOD is browsable by category, series, season and episode with in-category search. M3U movie/episode metadata is displayed directly without requiring an Xtream account.
-- Catch-up supports explicit default templates, append, shift, Flussonic/fs and Xtream/xc endpoints. Supported placeholders: {utc}, {start}, {utcend}, {end}, {duration}, {lutc}, {offset}, {Y}, {m}, {d}, {H}, {M}, {S}, ${start}, ${end}, ${duration}.
-- Archive flags, retention windows and catchup-correction are honored. Xtream archive capability/duration and the server's reported clock offset are preserved. Unknown template placeholders are rejected before playback.
-- Recorded playback uses a programme-wide timeline, resumable position, native seek where available, server-side seek otherwise, bounded playback duration and a return-to-live action. Pause keeps archive playback available.
-- XMLTV guide data is primed in the background and channel cards refresh their current-programme labels every five seconds. The guide retains available history for the preceding 31 days and upcoming programmes for 14 days, with a 30-minute feed cache.
-- Hebrew UI/rendering, audio/subtitle selectors and verified updates from rtk19/TsVitch remain available for both source modes.
+## Technical notes and validation
 
-## Data requirements and validation
+VOD navigation now uses the same recycling-grid navigation mechanism as the channel browser, with four columns, reusable poster cells, back controls, focus restoration, loading/retry/empty states and guarded asynchronous callbacks. Large catalogues share playback queues instead of copying the entire catalogue into every tile.
 
-A playlist must contain, or identify, the data it offers. Missing VOD entries, series names, descriptions or guide programmes cannot be reconstructed from an arbitrary live-only M3U. Use media-type/type, series-title/tvg-series, season/tvg-season, episode/tvg-episode and description/tvg-description attributes where available. Configure an XMLTV URL manually when the playlist does not advertise one.
+Watch state is persisted separately from the original ten-entry channel history. Movies and series have separate recent shelves; recently watched series are deduplicated by provider and series identity. Watched items are matched against the active catalogue, refreshing movie URLs from current provider data. First-discovery dates are persisted separately from playback checkpoints so saving progress does not rewrite the full catalogue index.
 
-Catch-up requires a supported provider endpoint or catchup-source template. Availability depends on the provider's retention and subscription. Xtream server seeking may be limited to minute boundaries; the timeline reflects that position, while native seeking can be finer where supported. XMLTV alone does not enable recordings. The date/time picker uses the application's local-time clock, exposes advertised retention up to 366 days, and offers the most recent seven days when retention is unspecified. XMLTV/XMLTV.gz is limited to 96 MiB after decompression. This does not add local DVR recording or DRM support.
+Provider `added`/`last_modified` timestamps determine recently added ordering when available. For M3U entries without an added timestamp, ordering uses the date first discovered by this application; the initial import cannot reveal a historical provider addition date. The recent shelves display up to 200 items. Series/episode grouping and ordering depend on the provider or playlist metadata.
 
-Host tests cover M3U metadata and relative URLs, legacy saved-data compatibility, channel-cache metadata and corruption, catch-up URL construction, retention/seek boundaries, time corrections, version ordering, Hebrew encoding and bidirectional rendering. The Switch release pipeline validates NRO assets, embedded version, developer name and Hebrew resources before publishing.
+Host tests exercise legacy position migration, positions near the start and end, completion/restart behavior, persistence across reopening, write failures, provider isolation, refreshed movie URLs, recently watched series deduplication, recent-addition dates and ordered episode transitions across seasons. Existing playlist, catch-up, cache and Hebrew tests also run. The release pipeline validates the NRO version, developer name and embedded resources.
 
-Playback, rendering, remote archive interoperability and in-app update/relaunch still require physical Switch testing with a real provider. No IPTV subscription credentials were supplied for this session.
+Controller traversal, rendering, real-provider playback and update/relaunch still require testing on a physical Switch. No Switch device or IPTV subscription credentials were available in this environment. Resume is limited by the seek capability of the supplied stream; elapsed time is shown when total duration is unavailable. Catch-up availability and seek granularity remain provider-dependent.

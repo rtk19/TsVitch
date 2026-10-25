@@ -47,5 +47,16 @@
   "archive_by_time": "Choose archive by date and time",
   "archive_date": "Archive date",
   "archive_time": "Start time",
-  "archive_duration": "Playback duration"
+  "archive_duration": "Playback duration",
+  "details": "Details / restart",
+  "continue": "Continue watching",
+  "watched": "Watched",
+  "start_over": "Start from beginning",
+  "recent_added": "Recently added",
+  "recent_watched": "Recently watched",
+  "season": "Season",
+  "episode": "Episode",
+  "empty": "No items to display",
+  "retry": "Could not load. Select to retry",
+  "save_error": "Cannot save watch progress. Check SD card space."
 }

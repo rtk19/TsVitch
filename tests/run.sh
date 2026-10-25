@@ -12,3 +12,5 @@ c++ -std=c++17 -Wall -Wextra -Werror -I tests/stubs -I tsvitch/include -I tsvitc
 "$TEST_DIR/cache"
 c++ -std=c++17 -Wall -Wextra -Werror -I tsvitch/include -I tsvitch/include/api -I library/nlohmann_json/single_include tests/playlist_catchup_test.cpp -o "$TEST_DIR/playlist"
 "$TEST_DIR/playlist"
+c++ -std=c++17 -Wall -Wextra -Werror -I tsvitch/include -I tsvitch/include/api -I library/nlohmann_json/single_include tests/watch_store_test.cpp -o "$TEST_DIR/watch"
+"$TEST_DIR/watch"

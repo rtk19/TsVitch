@@ -128,8 +128,12 @@ public:
     int64_t archiveEnd = 0;
     std::string liveUrl;
     std::string liveTitle;
+    std::string seriesId;
+    std::string providerId;
+    int64_t addedAt = 0;
+    int64_t durationHint = 0;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LiveM3u8, id, chno, title, logo, groupTitle, url, description, epgId, epgSource, contentType, seriesTitle, season, episode, catchupMode, catchupSource, catchupDays, catchupCorrection, archiveStart, archiveEnd, liveUrl, liveTitle)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LiveM3u8, id, chno, title, logo, groupTitle, url, description, epgId, epgSource, contentType, seriesTitle, season, episode, catchupMode, catchupSource, catchupDays, catchupCorrection, archiveStart, archiveEnd, liveUrl, liveTitle, seriesId, providerId, addedAt, durationHint)
 
 typedef std::vector<LiveM3u8> LiveM3u8ListResult;
 

@@ -38,12 +38,11 @@
 
             <Tab label=""
                  fontSize="18"
-                 focusDown="main/setting"
                  icon="@res/svg/ico-history.svg"
                  iconActivate="@res/svg/ico-history-activate.svg">
                 <HomeHistory/>
             </Tab>
-            <Tab label="VOD" fontSize="18" icon="@res/svg/ico-home.svg" iconActivate="@res/svg/ico-home-activate.svg">
+            <Tab label="VOD" focusDown="main/setting" fontSize="18" icon="@res/svg/ico-home.svg" iconActivate="@res/svg/ico-home-activate.svg">
                 <IptvLibrary/>
             </Tab>
         </AutoTabFrame>

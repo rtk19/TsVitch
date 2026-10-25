@@ -36,6 +36,10 @@ public:
     void returnToLive();
     void savePlaybackPosition();
     double archiveOffset = 0;
+    bool mediaFinished = false;
+    bool progressWriteWarned = false;
+    bool restorePending = true;
+    int64_t lastCheckpoint = 0;
 
     void startAd(std::string adUrl);
 

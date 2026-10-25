@@ -1,3 +1,7 @@
+## 0.6.0
+
+Controller-accessible VOD tile navigation, no right-stick-click actions, persistent watch progress and completion, recently added/watched movie and series shelves, and automatic episode queues across seasons.
+
 ## 0.5.1
 
 Preserve explicit live-channel metadata when a category name contains Movies or Series. Includes all M3U/catch-up changes from 0.5.0.

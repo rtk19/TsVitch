@@ -88,6 +88,7 @@ inline LiveM3u8ListResult parsePlaylist(const std::string& text,const std::strin
         if(current.catchupMode.empty()&&!current.catchupSource.empty())current.catchupMode="default";
         try { current.catchupDays=std::max(0,std::stoi(attrs["catchup-days"].empty()?(attrs["timeshift"].empty()?attrs["tvg-rec"]:attrs["timeshift"]):attrs["catchup-days"])); } catch(...) {}
         try { current.catchupCorrection=static_cast<int>(std::stod(attrs["catchup-correction"])*3600); } catch(...) {}
+        try { current.addedAt=std::stoll(attrs["added"]); } catch(...) {}
         classifyMedia(current);result.push_back(std::move(current));pending=false;
     }
     return result;

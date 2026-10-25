@@ -5,6 +5,9 @@
 #include "activity/live_player_activity.hpp"
 #include "utils/iptv_browser.hpp"
 #include "utils/catchup.hpp"
+#include "utils/watch_progress.hpp"
+#include "utils/vod_helpers.hpp"
+#include "core/HistoryManager.hpp"
 #include "utils/number_helper.hpp"
 #include "core/DownloadManager.hpp"
 #include "core/DownloadProgressManager.hpp"
@@ -37,6 +40,8 @@ using namespace brls::literals;
 LiveActivity::LiveActivity(const std::vector<tsvitch::LiveM3u8>& channels, size_t startIndex,
                            std::function<void()> onClose)
     : onCloseCallback(onClose), channelList(channels), currentChannelIndex(startIndex) {
+    for(auto& media:channelList)if(media.contentType.empty()&&!tsvitch::isLiveMedia(media))
+        media.contentType=media.url.find("/series/")!=std::string::npos?"series":"movie";
     this->liveData = channelList[currentChannelIndex];
     brls::Logger::debug("LiveActivity: create: {}", liveData.title);
     ShaderHelper::instance().clearShader(false);
@@ -200,6 +205,8 @@ void LiveActivity::startAd(std::string adUrl) {
 
 void LiveActivity::startLive() {
     this->isAd = false;
+    mediaFinished=false;restorePending=true;lastCheckpoint=tsvitch::watchNow();
+    if(liveData.contentType=="movie"||liveData.contentType=="series")HistoryManager::get()->add(liveData);
     video->setActionAvailable(brls::BUTTON_LSB,liveData.contentType=="catchup");
 
     // Rileva il tipo di contenuto PRIMA di caricare l'URL
@@ -217,11 +224,12 @@ void LiveActivity::startLive() {
         } else {
             this->video->showOSD(false);
             MPVCore::instance().pause();
+            savePlaybackPosition();
             brls::cancelDelay(toggleDelayIter);
             ASYNC_RETAIN
             toggleDelayIter = brls::delay(5000, [ASYNC_TOKEN]() {
                 ASYNC_RELEASE
-                if (MPVCore::instance().isPaused() && liveData.contentType!="catchup") {
+                if (MPVCore::instance().isPaused() && tsvitch::isLiveMedia(liveData)) {
                     MPVCore::instance().stop();
                 }
             });
@@ -246,7 +254,17 @@ void LiveActivity::startLive() {
         });
     } else {
         this->video->setArchiveTimeline(0,0,{});
-        this->video->setOnEndCallback(nullptr);
+        this->video->setOnEndCallback([this] {
+            mediaFinished=true;
+            if(liveData.contentType=="movie"||liveData.contentType=="series") {
+                const auto duration=MPVCore::instance().duration>0?MPVCore::instance().duration:liveData.durationHint;
+                tsvitch::watchStore().update(liveData,duration,duration,true);
+                if(tsvitch::hasNextEpisode(channelList,currentChannelIndex)) {
+                    liveData=channelList[++currentChannelIndex];video->setTitle(liveData.title);
+                    video->setFavoriteIcon(FavoriteManager::get()->isFavorite(liveData.url));startLive();
+                }
+            }
+        });
         MPVCore::instance().command_async("set","end","none");
         this->video->setUrl(liveData.url);
     }
@@ -255,28 +273,35 @@ void LiveActivity::startLive() {
     // e per ripristinare la posizione salvata
     if (mpvEventRegistered) MPVCore::instance().getEvent()->unsubscribe(this->tl_event_id);
     this->tl_event_id = MPVCore::instance().getEvent()->subscribe([this](MpvEventEnum event) {
+        if(event==MpvEventEnum::UPDATE_PROGRESS && tsvitch::watchNow()-lastCheckpoint>=15) {
+            savePlaybackPosition();lastCheckpoint=tsvitch::watchNow();
+        }
         if (event == MPV_LOADED) {
             // Ri-verifica il tipo di contenuto con la durata effettiva da MPV
             this->detectContentType();
 
             // Ripristina la posizione salvata solo per video on-demand (non per live stream)
-            if (liveData.contentType!="catchup" && !tsvitch::isLiveMedia(liveData)) {
-                int64_t savedPosition = tsvitch::PlaybackPositionManager::getPosition(liveData.url);
-                if (savedPosition > 0) {
-                    MPVCore::instance().seek(savedPosition);
-                    brls::Logger::info("LiveActivity: Restored playback position to {} seconds", savedPosition);
-                }
+            if (restorePending && liveData.contentType!="catchup" && !tsvitch::isLiveMedia(liveData)) {
+                restorePending=false;
+                const auto saved=tsvitch::watchStore().progress(liveData).resume();
+                if(saved>0)MPVCore::instance().seek(saved);
             }
+
         }
     });
     mpvEventRegistered = true;
 }
 
 void LiveActivity::savePlaybackPosition() {
-    if(isAd||!video||tsvitch::isLiveMedia(liveData))return;
+    if(isAd||!video||mediaFinished||tsvitch::isLiveMedia(liveData))return;
     const auto position=static_cast<int64_t>(video->playbackPosition());
     const auto duration=liveData.contentType=="catchup"?liveData.archiveEnd-liveData.archiveStart:MPVCore::instance().duration;
-    if(position>0&&duration>0)tsvitch::PlaybackPositionManager::savePosition(liveData.url,position,duration);
+    if(position<=0)return;
+    if(liveData.contentType=="movie"||liveData.contentType=="series") {
+        tsvitch::watchStore().update(liveData,position,duration);
+        if(!tsvitch::watchStore().persisted&&!progressWriteWarned){progressWriteWarned=true;brls::Application::notify(brls::getStr("iptv/save_error"));}
+    }
+    else if(duration>0)tsvitch::PlaybackPositionManager::savePosition(liveData.url,position,duration);
 }
 void LiveActivity::seekArchive(double seconds) {
     if(liveData.contentType!="catchup")return;

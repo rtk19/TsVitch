@@ -1028,7 +1028,8 @@ void VideoView::registerMpvEvent() {
                 }
 
                 if (this->onEndCallback) {
-                    this->onEndCallback();
+                    auto callback=this->onEndCallback;
+                    callback();
                 }
                 break;
             case MpvEventEnum::CACHE_SPEED_CHANGE:

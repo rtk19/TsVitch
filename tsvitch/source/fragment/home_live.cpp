@@ -195,7 +195,7 @@ public:
         // brls::Logger::info("cellForRow: {} [{}]", r.title, index);
         RecyclingGridItemLiveVideoCard* item = (RecyclingGridItemLiveVideoCard*)recycler->dequeueReusableCell("Cell");
         item->setChannel(r);
-        item->registerAction(brls::getStr("iptv/s24"), brls::BUTTON_RSB, [channel = r](brls::View*) {
+        item->registerAction(brls::getStr("iptv/s24"), brls::BUTTON_LT, [channel = r](brls::View*) {
             tsvitch::showProgrammeInfo(channel); return true;
         });
         return item;

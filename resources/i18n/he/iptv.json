@@ -47,5 +47,16 @@
   "archive_by_time": "בחירת הקלטה לפי תאריך ושעה",
   "archive_date": "תאריך ההקלטה",
   "archive_time": "שעת התחלה",
-  "archive_duration": "משך הצפייה"
+  "archive_duration": "משך הצפייה",
+  "details": "פרטים / התחלה מחדש",
+  "continue": "המשך צפייה",
+  "watched": "נצפה",
+  "start_over": "התחלה מחדש",
+  "recent_added": "נוספו לאחרונה",
+  "recent_watched": "נצפו לאחרונה",
+  "season": "עונה",
+  "episode": "פרק",
+  "empty": "אין פריטים להצגה",
+  "retry": "הטעינה נכשלה. בחרו כדי לנסות שוב",
+  "save_error": "לא ניתן לשמור את מיקום הצפייה. בדקו מקום פנוי בכרטיס הזיכרון."
 }
