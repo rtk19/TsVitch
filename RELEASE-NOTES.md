@@ -1,34 +1,38 @@
-# TsVitch 0.6.4 — Refael Bar
+# TsVitch 0.6.5 — Refael Bar
 
-## תיקון קריסה ופתיחה
+## VOD מהיר יותר
 
-- תוקנה קריסה ביצירת כרטיס הערוץ הראשון: תג ההקלטות השתמש במאפיין `padding` שאינו נתמך על Label. הריווח נמצא כעת במכל Box מתאים.
-- בניית תאי הגריד הועברה מחוץ ל־Yoga layout callbacks כדי למנוע חישובי פריסה חוזרים וקריסה בזמן טעינה או שינוי רוחב.
-- לשוניות שאינן מוצגות נטענות רק כשנכנסים אליהן, כדי לצמצם את העבודה והזיכרון בזמן הפתיחה.
-- הניווט בקוביות, המשך הצפייה, ההתקדמות, המדפים האחרונים והפעלת הפרק הבא נשמרו.
+- קטלוגים ופרטי סדרות נשמרים בזיכרון ובכרטיס, כולל אחרי הפעלה מחדש. מעבר לקטגוריה ופתיחה חוזרת של סדרה משתמשים בנתונים שכבר נטענו.
+- בקשות מקבילות לאותם נתונים מאוחדות. רשימת M3U שכבר ירדה עבור הערוצים משמשת גם את ה־VOD.
+- במקורות Xtream, רשימת התוכן ושמות הקטגוריות נטענים במקביל.
+- הנתונים משותפים בין הקוביות; חיפושים חוזרים בכל הקטלוג הוחלפו באינדקסים. מסך שלא השתנה אינו נבנה מחדש בכל חזרה אליו.
+- נתונים בני יותר משש שעות מוצגים מיד בזמן רענון ברקע. **ZL** או כפתור **רענון ספרייה** מרעננים ידנית. כשל ברענון משאיר את הספרייה השמורה זמינה.
+- מטמון הזיכרון מוגבל ל־14 תמונות מצב ומטמון הכרטיס ל־64 קבצים. נתוני מסכי VOD נסגרים משתחררים כדי למנוע הצטברות זיכרון בניווט חוזר.
 
-## עדכון מתוך האפליקציה
+הטעינה הראשונה עדיין תלויה בגודל הקטלוג ובשרת הספק. פריט שכבר פונה מהמטמון ייטען שוב לפי הצורך.
 
-העדכון נמצא כעת ב־**Settings → Tools → Check for updates**, ואינו נמצא בתפריט VOD.
+## קטגוריות ומועדפים
 
-ההתנהגות תואמת למנגנון של [NX-torrent-player](https://github.com/rtk19/NX-torrent-player/blob/main/app/update.cpp):
+- **Y על קטגוריית ערוצים** מצמיד אותה לראש הרשימה או מבטל הצמדה. **X** פותח אפשרויות לקטגוריה. קטגוריות מוצמדות מסומנות ונשמרות בין הפעלות; הקטגוריה שנבחרה נשמרת לפי שמה גם כשהסדר משתנה.
+- **מועדפים** מופיעים בנפרד בסרטים ובסדרות. **Y על קובייה** מוסיף או מסיר, וכוכב מסמן פריט שמור.
+- בסדרות נשמרת **הסדרה כולה**. אפשר לסמן גם מתוך מסך העונות או דרך פרטים / אפשרויות. X בסרט או בפרק פותח פרטים, המשך צפייה ואפשרויות הכוללות מועדפים והתחלה מחדש.
+- המועדפים וההצמדות מופרדים לפי מקור IPTV. נתוני Xtream מזוהים לפי ספק וחשבון כך שהחלפת סיסמה אינה מוחקת את המועדפים.
+- השינויים חלים על Xtream ו־M3U בהתאם למטא־נתונים שהספק או הרשימה מספקים.
 
-1. בדיקת גרסה מהפורק `rtk19/TsVitch` והצגת גרסה זמינה, גודל ופירוט שינויים.
-2. בחירה ב־Update, הורדה עם פס התקדמות, אחוזים וגודל שהורד. ההורדה נכתבת ישירות לכרטיס.
-3. בדיקת גודל, מבנה NRO ו־SHA-256, כולל קריאה חוזרת מהכרטיס, לפני הכנת ההתקנה.
-4. Restart מסיים את היישום, משחרר RomFS, מחליף את ה־NRO ושומר את הקודם כ־`.bak`.
-5. היישום מפעיל את מסלול הטעינה מחדש של hbloader עם אותו נתיב NRO. יציאה למסך HOME מבוטלת למסלול זה. במפעיל שאינו תומך בטעינה מחדש תופיע הודעה לסגור ולפתוח ידנית.
+## קריאות טקסט
 
-הורדה חלקית או שגויה אינה מחליפה את האפליקציה. עדכון שהוכן ואומת נשמר בין הפעלות; כשל בהחלפה מנסה לשחזר את הגיבוי ומתועד להפעלה הבאה.
+כל גופני הטקסט מקבלים עיבוי עדין בזמן יצירת האות במטמון הגופן, כולל עברית, לטינית, ערבית ושפות מזרח אסיה. רוחב התווים, הריווח ושבירת השורות נשמרים. סמלי מקשים ואמוג׳י אינם מעובים.
 
-## התקנה כשגרסה קודמת קורסת
+## התקנה ועדכון
 
-הורידו **TsVitch.nro** ישירות והחליפו את ה־NRO הקיים בכרטיס. ההגדרות ונתוני הצפייה נשמרים. לחלופין חלצו **TsVitch-Switch.zip** לשורש הכרטיס. ה־ZIP נארז בפורמט רגיל בלי מאפייני קבצים נוספים ונבדק לפני הפרסום. הפעילו במצב יישום מלא דרך hbmenu.
+**Settings → Tools → Check for updates** → Update → Restart.
+
+להתקנה ידנית החליפו את `TsVitch.nro` הקיים או חלצו `TsVitch-Switch.zip` לשורש הכרטיס. ההגדרות ונתוני הצפייה נשמרים. מומלץ להפעיל במצב יישום מלא.
 
 ## Validation and limits
 
-The regression suite runs the real desktop application with an isolated profile and a local HTTP provider, imports 500 live channels in M3U and Hebrew Xtream modes, traverses VOD focus/nested grids and opens Settings. This exercises actual Borealis XML inflation, Yoga layout and rendering, rather than checking embedded resource presence alone. Release publication is gated on this runtime job, host tests and the Switch cross-build.
+The real desktop UI fixture imports 500 live channels, 4,000 movies and 1,000 series in M3U and Hebrew Xtream modes. It invokes pin/favorite actions, navigates categories, seasons and episodes, revisits the same catalogue/series, performs an explicit refresh followed by Back, then restarts the process and checks persisted preferences. Provider request counters ensure repeated opens and process restart add no catalogue/episode requests beyond the initial load and explicit refresh.
 
-Host tests cover NRO/ASET bounds, staged file replacement and preservation of the installed file on failures, in addition to existing playlist, catch-up, Hebrew, cache and watch-progress tests. Release files include SHA256SUMS and a checked ZIP.
+Host tests cover provider isolation, movie and whole-series favorite persistence, pin/unpin ordering, selected-category preservation, failed writes, cache expiry and reopening, and fractional glyph weight across languages. Existing playback progress, playlist, catch-up, update verification and Hebrew tests remain enabled. Release publication requires the host tests, real UI tests and Switch cross-build.
 
-No physical Switch or iPhone was available for testing. Actual hbloader relaunch and SD installation still require device verification. Real-provider playback, EPG and catch-up availability depend on provider metadata and stream seek support.
+No physical Switch was available. Actual console performance, rendering and playback still require device verification. Series grouping depends on playlist/provider metadata; cached data reflects the last successful refresh.

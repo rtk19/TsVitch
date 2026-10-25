@@ -16,3 +16,5 @@ c++ -std=c++17 -Wall -Wextra -Werror -I tsvitch/include -I tsvitch/include/api -
 "$TEST_DIR/watch"
 c++ -std=c++17 -Wall -Wextra -Werror -I tsvitch/include tests/update_files_test.cpp -o "$TEST_DIR/update"
 "$TEST_DIR/update" "$TEST_DIR/update-files"
+c++ -std=c++17 -Wall -Wextra -Werror -I tsvitch/include -I tsvitch/include/api -I library/nlohmann_json/single_include tests/library_features_test.cpp -o "$TEST_DIR/library"
+"$TEST_DIR/library" "$TEST_DIR/library-data"

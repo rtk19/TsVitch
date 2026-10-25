@@ -20,6 +20,7 @@
 #ifndef __SWITCH__
 #include "view/auto_tab_frame.hpp"
 #include "view/vod_grid.hpp"
+#include "../../tests/ui_smoke_steps.hpp"
 #endif
 
 #ifdef IOS
@@ -28,12 +29,13 @@
 
 int main(int argc, char* argv[]) {
 #ifndef __SWITCH__
-    bool uiSmokeTest=false;
+    bool uiSmokeTest=false,uiSmokeCacheOnly=false;
 #endif
     if (argc > 0 && argv[0]) tsvitch::setApplicationPath(argv[0]);
     for (int i = 1; i < argc; i++) {
 #ifndef __SWITCH__
         if (std::strcmp(argv[i], "--ui-smoke-test") == 0) uiSmokeTest=true;
+        if (std::strcmp(argv[i], "--ui-smoke-cache") == 0) {uiSmokeTest=true;uiSmokeCacheOnly=true;}
 #endif
         if (std::strcmp(argv[i], "-d") == 0) {
             brls::Logger::setLogLevel(brls::LogLevel::LOG_DEBUG);
@@ -139,34 +141,14 @@ int main(int argc, char* argv[]) {
         APPVersion::instance().checkUpdate();
 
 #ifndef __SWITCH__
-    const auto smokeStart=std::chrono::steady_clock::now();
+    auto smokeNext=std::chrono::steady_clock::now()+std::chrono::seconds(3);
     int smokeStep=0;
 #endif
     while (brls::Application::mainLoop()) {
 #ifndef __SWITCH__
         // Exercise the production screen lifecycle under Xvfb, without a Switch or subscription.
-        if(uiSmokeTest && std::chrono::steady_clock::now()-smokeStart>std::chrono::seconds(3+smokeStep)) {
-            const auto stack=brls::Application::getActivitiesStack();
-            auto* activity=stack.back();
-            if(smokeStep==0) {
-                auto* tabs=dynamic_cast<AutoTabFrame*>(activity->getView("main/tabFrame"));
-                if(!tabs)throw std::runtime_error("Smoke: main sidebar missing");
-                tabs->focusTab(4);
-            } else if(smokeStep==1) {
-                auto* tabs=dynamic_cast<AutoTabFrame*>(activity->getView("main/tabFrame"));
-                brls::Application::giveFocus(tabs->getActiveTab());
-                if(!brls::Application::getCurrentFocus())throw std::runtime_error("Smoke: VOD has no controller focus");
-            } else if(smokeStep==2) {
-                openVodGrid("Episodes",{{"Episode 1","Season 1","","ep1",{},[]{},{}},{"Episode 2","Season 1","","ep2",{},[]{},{}}});
-            } else if(smokeStep==3) brls::Application::popActivity();
-            else if(smokeStep==4) Intent::openSettings();
-            else if(smokeStep==5) {
-                if(!activity->getView("tools/release_checker"))throw std::runtime_error("Smoke: Check for updates missing");
-                brls::Application::popActivity();
-            } else {
-                brls::Logger::info("UI_SMOKE_PASSED");brls::Application::quit();
-            }
-            ++smokeStep;
+        if(uiSmokeTest && std::chrono::steady_clock::now()>=smokeNext) {
+            if(uiSmokeStep(smokeStep,uiSmokeCacheOnly)){++smokeStep;smokeNext=std::chrono::steady_clock::now()+std::chrono::milliseconds(600);}
         }
 #endif
     }

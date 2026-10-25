@@ -4,6 +4,7 @@
 #include <fstream>
 #include <algorithm>
 #include <chrono>
+#include <unordered_map>
 
 namespace tsvitch {
 inline int64_t watchNow() { return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count(); }
@@ -20,7 +21,7 @@ inline std::string mediaKey(const LiveM3u8& media) {
 inline std::string seriesKey(const LiveM3u8& media) {
     auto source=media.providerId;
     if(source.empty()){auto start=media.url.find("://");source=media.url.substr(0,start==std::string::npos?0:media.url.find('/',start+3));}
-    return source+":"+(media.seriesId.empty()?media.seriesTitle:media.seriesId);
+    return source+":"+(media.seriesId.empty()?(media.seriesTitle.empty()?media.title:media.seriesTitle):media.seriesId);
 }
 struct WatchProgress {
     int64_t position=0,duration=0,updated=0;
@@ -33,6 +34,14 @@ class WatchStore {
     std::filesystem::path path;
     Json data=Json::object(),legacy=Json::object(),discovered=Json::object();
     int64_t lastUpdated=0;
+    std::unordered_map<std::string,std::string> byUrl;
+    void indexUrls() {
+        byUrl.clear();
+        for(auto it=data["entries"].begin();it!=data["entries"].end();++it)try {
+            const auto url=it.value().at("media").value("url",std::string{});
+            if(!url.empty())byUrl[url]=it.key();
+        }catch(...){}
+    }
     static Json read(const std::filesystem::path& path) {
         try {std::ifstream f(path);Json j;if(f>>j&&j.is_object())return j;}catch(...){}return Json::object();
     }
@@ -54,7 +63,7 @@ class WatchStore {
     LiveM3u8 normalized(LiveM3u8 media) const {
         const Json* saved=nullptr;const auto key=mediaKey(media);
         if(data["entries"].contains(key))saved=&data["entries"][key];
-        else for(const auto& entry:data["entries"])try{if(entry.contains("media")&&entry["media"].value("url",std::string{})==media.url){saved=&entry;break;}}catch(...){}
+        else {auto found=byUrl.find(media.url);if(found!=byUrl.end())saved=&data["entries"][found->second];}
         if(saved)try{
             const auto known=saved->at("media").get<LiveM3u8>();
             if(media.providerId.empty())media.providerId=known.providerId;
@@ -77,12 +86,14 @@ public:
         if(!data.contains("entries")||!data["entries"].is_object())data["entries"]=Json::object();
         discovered=read(path.string()+".catalogue");
         for(const auto& entry:data["entries"])try{if(entry.is_object())lastUpdated=std::max(lastUpdated,entry.value("updated",int64_t{0}));}catch(...){}
+        indexUrls();
     }
+    int64_t version()const{return lastUpdated;}
     WatchProgress progress(const LiveM3u8& media) const {
         const auto key=mediaKey(media);const Json* entry=nullptr;
         if(data["entries"].contains(key))entry=&data["entries"][key];
         else {
-            for(const auto& candidate:data["entries"])try{if(candidate.contains("media")&&candidate["media"].value("url",std::string{})==media.url){entry=&candidate;break;}}catch(...){}
+            const auto found=byUrl.find(media.url);if(found!=byUrl.end())entry=&data["entries"][found->second];
             if(!entry&&legacy.contains(media.url))entry=&legacy[media.url];
         }
         if(!entry||!entry->is_object())return {};
@@ -100,6 +111,7 @@ public:
             for(const auto& alias:aliases)data["entries"].erase(alias);
         }
         data["entries"][key]={{"position",position},{"duration",duration},{"completed",completed},{"updated",lastUpdated},{"media",canonical}};
+        indexUrls();
         persist();
     }
     void clear(const LiveM3u8& media) {
@@ -110,6 +122,7 @@ public:
             if(it.key()==mediaKey(media)||(it.value().contains("media")&&it.value()["media"].value("url",std::string{})==media.url))aliases.push_back(it.key());
         }catch(...){}
         for(const auto& key:aliases)data["entries"].erase(key);
+        indexUrls();
         legacy.erase(media.url);
         // Persist a zero-position record so a legacy cache cannot resurrect old progress.
         update(canonical,0,duration,false);

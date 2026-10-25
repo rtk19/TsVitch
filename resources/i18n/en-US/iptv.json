@@ -68,5 +68,16 @@
   "update_no_relaunch": "This loader cannot relaunch applications. Close and reopen TsVitch to install and use the update.",
   "update_no_notes": "No release notes supplied.",
   "update_failed": "Update failed. Your existing application is preserved.",
-  "update_check_failed": "Could not check for updates."
+  "update_check_failed": "Could not check for updates.",
+  "favorites": "Favorites",
+  "add_favorite": "Add to favorites",
+  "remove_favorite": "Remove from favorites",
+  "toggle_favorite": "Toggle favorite",
+  "options": "Options",
+  "refresh_library": "Refresh library",
+  "cache_offline": "Could not refresh. Showing the saved library.",
+  "pin_category": "Pin category",
+  "unpin_category": "Unpin category",
+  "pinned": "Pinned",
+  "preferences_error": "Cannot save this change. Check SD card space."
 }

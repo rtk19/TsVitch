@@ -1,5 +1,6 @@
 <brls:Box axis="column" width="auto" height="auto" highlightCornerRadius="8">
     <brls:Image id="vod/tile/image" width="100%" height="145" scalingType="fit" backgroundColor="@theme/color/grey_4" cornerRadius="6"/>
+    <brls:Label id="vod/tile/favorite" positionType="absolute" positionTop="5" positionRight="8" fontSize="25" text="★" textColor="@theme/font/yellow_1" visibility="gone"/>
     <brls:Label id="vod/tile/title" width="100%" height="28" fontSize="18" marginTop="8"/>
     <brls:Label id="vod/tile/subtitle" width="100%" height="20" fontSize="13"/>
     <brls:Label id="vod/tile/progress" width="100%" height="20" fontSize="13"/>

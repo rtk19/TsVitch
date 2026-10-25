@@ -1,4 +1,5 @@
 #include <utility>
+#include <memory>
 #include "view/recycling_grid.hpp"
 #include "view/button_refresh.hpp"
 
@@ -113,6 +114,9 @@ RecyclingGrid::RecyclingGrid() {
 }
 
 RecyclingGrid::~RecyclingGrid() {
+    destroying=true;
+    std::unique_ptr<RecyclingGridDataSource> ownedSource(releaseDataSource?dataSource:nullptr);
+    dataSource=nullptr;
     try {
         brls::Logger::info("RecyclingGrid: destructor starting");
         
@@ -173,34 +177,9 @@ RecyclingGrid::~RecyclingGrid() {
             brls::Logger::error("RecyclingGrid destructor: exception freeing hintLabel");
         }
         
-        // Safely delete dataSource
-        try {
-            brls::Logger::info("RecyclingGrid: checking dataSource for deletion (ptr={})", static_cast<void*>(this->dataSource));
-            if (this->dataSource) {
-                // Simply try to delete - if it fails, catch the exception
-                try {
-                    // First set it to null to prevent double deletion
-                    this->dataSource = nullptr;
-                    brls::Logger::info("RecyclingGrid: dataSource nullified, proceeding with delete");
-                    
-                    // Skip deletion to avoid bus error during app shutdown
-                    // The OS will clean up the memory anyway
-                    brls::Logger::info("RecyclingGrid: skipping dataSource deletion to prevent bus error");
-                    
-                    // delete ds;
-                    // brls::Logger::info("RecyclingGrid: dataSource deleted successfully");
-                } catch (const std::exception& e) {
-                    brls::Logger::error("RecyclingGrid destructor: std exception deleting dataSource: {}", e.what());
-                } catch (...) {
-                    brls::Logger::error("RecyclingGrid destructor: unknown exception deleting dataSource");
-                }
-            } else {
-                brls::Logger::info("RecyclingGrid: dataSource was null, no deletion needed");
-            }
-        } catch (...) {
-            brls::Logger::error("RecyclingGrid destructor: exception accessing dataSource");
-        }
-        
+        // Opted-in VOD datasources are released after cell teardown.
+        // Keeping it alive leaked complete VOD catalogues each time a page closed.
+
         // Clear the content box reference to avoid dangling pointer
         this->contentBox = nullptr;
         
@@ -320,6 +299,7 @@ void RecyclingGrid::setDataSource(RecyclingGridDataSource* source) {
 }
 
 void RecyclingGrid::reloadData() {
+    if(destroying)return;
     brls::Logger::debug("RecyclingGrid reloadData");
     if (!layouted) return;
     if (reloading) { pendingReload=true;return; }
@@ -643,6 +623,7 @@ brls::View* RecyclingGrid::getNextCellFocus(brls::FocusDirection direction, brls
 }
 
 void RecyclingGrid::onLayout() {
+    if(destroying)return;
     if(layingOut)return;
     layingOut=true;
     struct Reset { bool& flag; ~Reset(){flag=false;} } reset{layingOut};
@@ -758,6 +739,7 @@ float RecyclingGrid::getPaddingRight() {
 }
 
 brls::View* RecyclingGrid::getDefaultFocus() {
+    if(destroying)return nullptr;
     if(pendingReload&&!reloading)reloadData();
     if (this->dataSource && this->dataSource->getItemCount() > 0) return ScrollingFrame::getDefaultFocus();
     return nullptr;

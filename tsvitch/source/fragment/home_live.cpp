@@ -24,6 +24,7 @@
 #include "core/DownloadProgressManager.hpp"
 
 #include "utils/config_helper.hpp"
+#include "utils/library_state.hpp"
 
 using namespace brls::literals;
 
@@ -37,6 +38,13 @@ public:
     }
 
     void setTitle(const std::string& title) { this->labelTitle->setText(title); }
+    void setPinAction(bool pinned,std::function<void()> action) {
+        const auto label=brls::getStr(pinned?"iptv/unpin_category":"iptv/pin_category");
+        registerAction(label,brls::BUTTON_Y,[action](brls::View*){action();return true;});
+        registerAction(brls::getStr("iptv/options"),brls::BUTTON_X,[action,label](brls::View*){
+            auto* dialog=new brls::Dialog(label);dialog->addButton(label,action);dialog->addButton(brls::getStr("hints/back"),[]{});dialog->open();return true;
+        });
+    }
 
     void setSelected(bool selected) { this->labelTitle->setTextColor(selected ? selectedColor : fontColor); }
 
@@ -60,12 +68,14 @@ private:
 class DataSourceUpList : public RecyclingGridDataSource {
 public:
     using OnGroupSelected = std::function<void(const std::string&)>;
-    explicit DataSourceUpList(std::vector<std::string> result, OnGroupSelected cb = nullptr)
-        : list(std::move(result)), onGroupSelected(cb) {}
+    explicit DataSourceUpList(std::vector<std::string> result, OnGroupSelected cb = nullptr,std::function<void(size_t)> reordered={})
+        : list(std::move(result)), onGroupSelected(cb),reordered(std::move(reordered)),scope(tsvitch::librarySourceKey()) {}
 
     RecyclingGridItem* cellForRow(RecyclingGrid* recycler, size_t index) override {
         DynamicGroupChannels* item = (DynamicGroupChannels*)recycler->dequeueReusableCell("Cell");
-        item->setTitle(this->list[index]);
+        const auto group=this->list[index];const bool pinned=tsvitch::libraryPreferences().pinned(scope,group);
+        item->setTitle(pinned?brls::getStr("iptv/pinned")+" · "+group:group);
+        item->setPinAction(pinned,[this,recycler,group]{togglePin(recycler,group);});
         item->setSelected(index == selectedIndex);  // Imposta sempre la selezione!
         return item;
     }
@@ -82,6 +92,8 @@ public:
 
         // Salva l'indice selezionato
         ProgramConfig::instance().setSettingItem(SettingItem::GROUP_SELECTED_INDEX, static_cast<int>(index));
+        tsvitch::libraryPreferences().select(scope,list[index]);
+        if(reordered)reordered(index);
 
         if (onGroupSelected) onGroupSelected(list[index]);
     }
@@ -102,6 +114,8 @@ public:
 
         // Salva l'indice selezionato
         ProgramConfig::instance().setSettingItem(SettingItem::GROUP_SELECTED_INDEX, static_cast<int>(index));
+        tsvitch::libraryPreferences().select(scope,list[index]);
+        if(reordered)reordered(index);
 
         if (onGroupSelected) onGroupSelected(list[index]);
     }
@@ -119,9 +133,23 @@ public:
     }
 
 private:
+    void togglePin(RecyclingGrid* recycler,const std::string& group) {
+        auto& preferences=tsvitch::libraryPreferences();
+        const auto selected=selectedIndex<list.size()?list[selectedIndex]:std::string{};
+        if(!preferences.togglePin(scope,group)){brls::Application::notify(brls::getStr("iptv/preferences_error"));return;}
+        preferences.sortGroups(scope,list);
+        auto found=std::find(list.begin(),list.end(),selected);selectedIndex=found==list.end()?0:size_t(found-list.begin());
+        if(reordered)reordered(selectedIndex);
+        ProgramConfig::instance().setSettingItem(SettingItem::GROUP_SELECTED_INDEX,static_cast<int>(selectedIndex));
+        const auto focus=std::find(list.begin(),list.end(),group);const auto index=size_t(focus-list.begin());
+        recycler->setDefaultCellFocus(index);recycler->reloadData();recycler->selectRowAt(index,false);
+        brls::Application::giveFocus(recycler->getDefaultFocus());
+    }
     std::vector<std::string> list;
     size_t selectedIndex = -1;
     OnGroupSelected onGroupSelected;
+    std::function<void(size_t)> reordered;
+    std::string scope;
 };
 
 const std::string GridMainAreaCellContentXML = R"xml(
@@ -442,7 +470,8 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
         }
 
         // Ordina alfabeticamente
-        std::sort(groupTitles.begin(), groupTitles.end());
+        const auto scope=tsvitch::librarySourceKey();
+        tsvitch::libraryPreferences().sortGroups(scope,groupTitles);
 
         auto grouping_end = std::chrono::high_resolution_clock::now();
         auto grouping_duration = std::chrono::duration_cast<std::chrono::milliseconds>(grouping_end - grouping_start);
@@ -450,7 +479,10 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
 
         // Leggi lastIndex dal config
         int lastIndex = ProgramConfig::instance().getSettingItem(SettingItem::GROUP_SELECTED_INDEX, 0);
-        if (lastIndex >= (int)groupTitles.size()) lastIndex = 0;
+        if (lastIndex < 0 || lastIndex >= (int)groupTitles.size()) lastIndex = 0;
+        const auto selected=tsvitch::libraryPreferences().selected(scope);
+        auto selection=std::find(groupTitles.begin(),groupTitles.end(),selected);
+        if(selection!=groupTitles.end())lastIndex=int(selection-groupTitles.begin());
         std::string selectedGroup = groupTitles.empty() ? "" : groupTitles[lastIndex];
 
         // Prepara il gruppo selezionato
@@ -501,7 +533,7 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
                     recyclingGrid->setEmpty();
                 else
                     recyclingGrid->setDataSource(new DataSourceLiveVideoList(filtered));
-            });
+            },[this](size_t index){this->selectedGroupIndex=static_cast<int>(index);});
             upRecyclingGrid->setDataSource(upList);
             this->selectGroupIndex(static_cast<size_t>(lastIndex));
         } else {

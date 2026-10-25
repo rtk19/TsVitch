@@ -1,3 +1,5 @@
+#include "utils/vod_cache_runtime.hpp"
+#include "utils/library_state.hpp"
 #include <nlohmann/json.hpp>
 #include <unordered_map>
 #include "utils/url_encode.hpp"
@@ -82,14 +84,19 @@ void TsVitchClient::get_file_m3u8(const std::function<void(LiveM3u8ListResult)>&
                                 const ErrorCallback& error) {
     const auto url = ProgramConfig::instance().getM3U8Url();
     const auto timeout = std::max(30000, ProgramConfig::instance().getIntOption(SettingItem::M3U8_TIMEOUT));
-    cpr::GetCallback([url, callback, error](cpr::Response response) {
+    const auto cacheKey=libraryCacheKey()+"/playlist";
+    vodCacheStore();
+    cpr::GetCallback([url, callback, error, cacheKey](cpr::Response response) {
         if (response.error || response.status_code != 200) {
             brls::sync([error] { if (error) error("Cannot download M3U playlist", -1); });
             return;
         }
         try {
-            auto items = parsePlaylist(response.text, url);
-            brls::sync([callback, items = std::move(items)] { if (callback) callback(items); });
+            auto snapshot=std::make_shared<VodSnapshot>();
+            snapshot->items=std::make_shared<const LiveM3u8ListResult>(parsePlaylist(response.text,url));snapshot->saved=vodNow();
+            vodCacheStore().remember(cacheKey,snapshot);
+            brls::sync([callback,snapshot]{if(callback)callback(*snapshot->items);});
+            brls::async([cacheKey,snapshot]{vodCacheStore().persist(cacheKey,*snapshot);});
         } catch (const std::exception&) {
             brls::sync([error] { if (error) error("Invalid M3U playlist", -1); });
         }

@@ -1,3 +1,9 @@
+## 0.6.5
+
+Cache VOD catalogues, categories and series details in memory and on disk, coalesce requests, reuse the live M3U download, refresh stale data in the background and support explicit refresh. Replace repeated catalogue scans and per-tile queue copies with shared snapshots and indices. Retain unchanged grid pages and release their owned data sources on close.
+
+Add provider-scoped pinned live categories, separate movie/whole-series favorites shelves with Y actions and badges, and a subtle cached glyph embolden for all text languages. Expand real-UI tests to 4,000 movies/1,000 series, count requests on repeated opens and process restart, and verify pin/favorite actions and manual refresh followed by Back.
+
 ## 0.6.4
 
 Fix startup failures while creating channel cards: move catch-up badge padding to its Box container and defer recycler cell rebuilding outside Yoga layout callbacks. Lazily construct inactive tabs. Add a real desktop UI regression run with local M3U/Xtream fixtures and Hebrew, including VOD focus and Settings.

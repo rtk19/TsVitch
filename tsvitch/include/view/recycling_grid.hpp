@@ -61,6 +61,9 @@ public:
     size_t getDefaultCellFocus() const;
 
     void setDataSource(RecyclingGridDataSource* source);
+    // Legacy screens may own the final datasource themselves. VOD grids opt in
+    // to releasing it with the view, so large catalogue snapshots can be freed.
+    void releaseDataSourceOnDestroy(){releaseDataSource=true;}
 
     RecyclingGridDataSource* getDataSource() const;
 
@@ -132,6 +135,8 @@ public:
 private:
     RecyclingGridDataSource* dataSource = nullptr;
     bool layouted                       = false;
+    bool destroying                     = false;
+    bool releaseDataSource              = false;
     bool pendingReload                  = false;
     bool reloading                      = false;
     bool layingOut                      = false;
