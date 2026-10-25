@@ -1,3 +1,7 @@
+## 0.6.2
+
+Restore VOD focus only after the outgoing activity has finished fading, without stealing focus from a player or dialog.
+
 ## 0.6.1
 
 Restore the selected VOD tile after the framework restores its activity focus, including recently watched pages whose ordering changes.

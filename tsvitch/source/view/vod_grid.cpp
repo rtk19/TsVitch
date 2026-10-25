@@ -63,17 +63,7 @@ public:
     explicit GridActivity(VodGridPage* page):brls::Activity(new brls::AppletFrame(page)),page(page){
     }
     void onContentAvailable() override{static_cast<brls::AppletFrame*>(getContentView())->setHeaderVisibility(brls::Visibility::GONE);}
-    void onResume() override {
-        page->refresh();
-        // Borealis restores the previous focus after onResume. Select the logical
-        // tile afterward, since recycled cells may now represent a different item.
-        auto alive=page->alive;auto* resumed=page;
-        brls::sync([alive,resumed]{
-            if(!*alive)return;
-            const auto stack=brls::Application::getActivitiesStack();
-            if(!stack.empty()&&stack.back()==resumed->getParentActivity())brls::Application::giveFocus(resumed->getDefaultFocus());
-        });
-    }
+    void onResume() override {page->refresh();page->restoreFocusOnShow();}
 };
 }
 VodGridPage::VodGridPage(const std::string& heading,bool embedded) {
@@ -89,6 +79,17 @@ VodGridPage::VodGridPage(const std::string& heading,bool embedded) {
 }
 VodGridPage::~VodGridPage(){*alive=false;}
 brls::View* VodGridPage::getDefaultFocus(){return grid?grid->getDefaultFocus():nullptr;}
+void VodGridPage::draw(NVGcontext* vg,float x,float y,float width,float height,brls::Style style,brls::FrameContext* ctx) {
+    if(restoreFocus){
+        const auto stack=brls::Application::getActivitiesStack();
+        // A fading outgoing activity remains on the stack until its animation ends.
+        // Restore only when this page is actually visible and active, never over a player/dialog.
+        if(!stack.empty()&&stack.back()==getParentActivity()){
+            restoreFocus=false;brls::Application::giveFocus(getDefaultFocus());
+        }
+    }
+    brls::Box::draw(vg,x,y,width,height,style,ctx);
+}
 void VodGridPage::setTiles(std::vector<VodTile> tiles,bool focus) {
     std::string focused;
     auto* old=dynamic_cast<Tiles*>(grid->getDataSource());const auto index=grid->getDefaultCellFocus();

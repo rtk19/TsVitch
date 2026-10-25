@@ -15,9 +15,12 @@ public:
     void setTiles(std::vector<VodTile> tiles,bool focus=false);
     void setBuilder(std::function<std::vector<VodTile>()> builder);
     void refresh();
+    void restoreFocusOnShow(){restoreFocus=true;}
+    void draw(NVGcontext*,float,float,float,float,brls::Style,brls::FrameContext*) override;
     std::shared_ptr<std::atomic<bool>> alive=std::make_shared<std::atomic<bool>>(true);
 private:
     RecyclingGrid* grid=nullptr;
+    bool restoreFocus=false;
     std::function<std::vector<VodTile>()> builder;
 };
 VodGridPage* openVodGrid(const std::string& title,std::vector<VodTile> tiles={});
