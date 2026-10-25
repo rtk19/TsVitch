@@ -20,7 +20,11 @@ inline LiveM3u8ListResult recentForCatalogue(const LiveM3u8ListResult& recent,co
     std::map<std::string,LiveM3u8> current;
     for(const auto& item:catalogue)current[series?seriesKey(item):mediaKey(item)]=item;
     LiveM3u8ListResult result;
-    for(auto item:recent){auto found=current.find(series?seriesKey(item):mediaKey(item));if(found==current.end())continue;
+    for(auto item:recent){auto found=current.find(series?seriesKey(item):mediaKey(item));
+        if(found==current.end()&&item.providerId.empty()&&!item.url.empty()){
+            for(auto it=current.begin();it!=current.end();++it)if(it->second.url==item.url){found=it;break;}
+        }
+        if(found==current.end())continue;
         if(!series)item=found->second;
         else if(!found->second.logo.empty())item.logo=found->second.logo;
         result.push_back(std::move(item));

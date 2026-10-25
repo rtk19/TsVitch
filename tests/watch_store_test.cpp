@@ -16,11 +16,15 @@ int main(){
     restored.clear(movie);assert(restored.progress(movie).position==0);
     tsvitch::WatchStore restarted(dir/"watch.json",dir/"legacy.json");assert(restarted.progress(movie).resume()==0);
     restored.update(movie,22,0);assert(restored.progress(movie).resume()==22);
-    auto episode=movie;episode.contentType="series";episode.seriesId="show";episode.seriesTitle="Show";episode.season="1";episode.episode="1";
+    auto episode=movie;episode.url="https://p/series/u/p/7.mkv";episode.contentType="series";episode.seriesId="show";episode.seriesTitle="Show";episode.season="1";episode.episode="1";
     auto second=episode;second.id="8";second.episode="2";second.url="https://p/series/u/p/8.mkv";
     restored.update(episode,30,90);restored.update(second,40,90);
     const auto recent=restored.recent("series");assert(recent.size()==1&&recent[0].id=="8");
     assert(restored.recent("movie").size()==1);
+    auto favorite=second;favorite.providerId.clear();favorite.seriesId.clear();favorite.seriesTitle.clear();favorite.season.clear();favorite.episode.clear();
+    restored.update(favorite,55,90);assert(restored.progress(second).resume()==55);
+    assert(restored.recent("series")[0].providerId==second.providerId);
+    restored.clear(favorite);assert(restored.progress(second).resume()==0);
     auto other=second;other.providerId="other/account";assert(tsvitch::mediaKey(other)!=tsvitch::mediaKey(second));
     auto nextSeason=second;nextSeason.id="9";nextSeason.season="2";nextSeason.episode="1";
     tsvitch::LiveM3u8ListResult queue={nextSeason,second,episode};tsvitch::sortEpisodes(queue);
@@ -28,6 +32,8 @@ int main(){
     assert(tsvitch::hasNextEpisode(queue,0)&&tsvitch::hasNextEpisode(queue,1)&&!tsvitch::hasNextEpisode(queue,2));
     const auto filtered=tsvitch::recentForCatalogue(recent,{other},true);assert(filtered.empty());
     auto fresh=movie;fresh.url="https://p/movie/new-user/new-password/7.mp4";
+    auto legacyMovie=movie;legacyMovie.providerId.clear();
+    assert(tsvitch::recentForCatalogue({legacyMovie},{movie},false).size()==1);
     const auto renewed=tsvitch::recentForCatalogue({movie},{fresh},false);assert(renewed.size()==1&&renewed[0].url==fresh.url);
     queue.push_back(movie);assert(!tsvitch::hasNextEpisode(queue,2));
     restored.observe({movie,episode});const auto discovered=restored.added(movie);assert(discovered>0);

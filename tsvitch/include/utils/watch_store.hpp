@@ -51,6 +51,23 @@ class WatchStore {
         return true;
         }catch(...){return false;}
     }
+    LiveM3u8 normalized(LiveM3u8 media) const {
+        const Json* saved=nullptr;const auto key=mediaKey(media);
+        if(data["entries"].contains(key))saved=&data["entries"][key];
+        else for(const auto& entry:data["entries"])try{if(entry.contains("media")&&entry["media"].value("url",std::string{})==media.url){saved=&entry;break;}}catch(...){}
+        if(saved)try{
+            const auto known=saved->at("media").get<LiveM3u8>();
+            if(media.providerId.empty())media.providerId=known.providerId;
+            if(media.seriesId.empty())media.seriesId=known.seriesId;
+            if(media.seriesTitle.empty())media.seriesTitle=known.seriesTitle;
+            if(media.season.empty())media.season=known.season;
+            if(media.episode.empty())media.episode=known.episode;
+            if(media.contentType.empty())media.contentType=known.contentType;
+            if(media.logo.empty())media.logo=known.logo;
+            if(media.description.empty())media.description=known.description;
+        }catch(...){}
+        return media;
+    }
     void persist() { persisted=write(path,data); }
 public:
     bool persisted=true;
@@ -76,10 +93,17 @@ public:
         auto old=progress(media);if(duration<=0)duration=old.duration>0?old.duration:media.durationHint;
         if(duration>0)position=std::min(position,duration);
         lastUpdated=std::max(watchNow()*1000,lastUpdated+1);
-        data["entries"][mediaKey(media)]={{"position",position},{"duration",duration},{"completed",completed},{"updated",lastUpdated},{"media",media}};
+        const auto canonical=normalized(media);const auto key=mediaKey(canonical);
+        if(key!=mediaKey(media)||!data["entries"].contains(key)){
+            std::vector<std::string> aliases;
+            for(auto it=data["entries"].begin();it!=data["entries"].end();++it)try{if(it.key()!=key&&it.value().contains("media")&&it.value()["media"].value("url",std::string{})==media.url)aliases.push_back(it.key());}catch(...){}
+            for(const auto& alias:aliases)data["entries"].erase(alias);
+        }
+        data["entries"][key]={{"position",position},{"duration",duration},{"completed",completed},{"updated",lastUpdated},{"media",canonical}};
         persist();
     }
     void clear(const LiveM3u8& media) {
+        const auto canonical=normalized(media);
         const auto duration=progress(media).duration;
         std::vector<std::string> aliases;
         for(auto it=data["entries"].begin();it!=data["entries"].end();++it)try{
@@ -88,7 +112,7 @@ public:
         for(const auto& key:aliases)data["entries"].erase(key);
         legacy.erase(media.url);
         // Persist a zero-position record so a legacy cache cannot resurrect old progress.
-        update(media,0,duration,false);
+        update(canonical,0,duration,false);
     }
     void observe(const LiveM3u8ListResult& items) {
         bool changed=false;const auto now=watchNow();

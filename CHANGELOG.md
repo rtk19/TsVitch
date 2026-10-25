@@ -1,3 +1,7 @@
+## 0.6.3
+
+Keep one canonical watch record when the same media is opened from legacy favorites/history and the VOD catalogue. Preserve richer series metadata when updating or resetting progress.
+
 ## 0.6.2
 
 Restore VOD focus only after the outgoing activity has finished fading, without stealing focus from a player or dialog.
