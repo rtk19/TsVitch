@@ -32,6 +32,10 @@ inline std::string resolvePlaylistUrl(const std::string& base,const std::string&
 }
 inline void classifyMedia(LiveM3u8& item) {
     auto type=asciiLower(item.contentType),url=asciiLower(item.url),group=asciiLower(item.groupTitle);
+    // Explicit source metadata and live endpoints take precedence over category names.
+    // A live "Movies" channel must never disappear into the VOD catalogue.
+    if(type=="live"||type=="tv"){item.contentType="live";return;}
+    if(type.empty()&&url.find("/live/")!=std::string::npos){item.contentType="live";return;}
     static const std::regex movieExtension(R"(\.(mp4|mkv|avi|mov)(\?|$))");
     std::smatch match;
     static const std::regex episode(R"((.*?)\s*[Ss]([0-9]+)[ ._-]*[Ee]([0-9]+).*)");

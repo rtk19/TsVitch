@@ -1,3 +1,7 @@
+## 0.5.1
+
+Preserve explicit live-channel metadata when a category name contains Movies or Series. Includes all M3U/catch-up changes from 0.5.0.
+
 ## 0.5.0
 
 Shared M3U/Xtream catalogues and archive playback, programme timelines with seek and return to live, current-programme channel cards and archive badges. Developer: Refael Bar. See [release notes](RELEASE-NOTES.md).

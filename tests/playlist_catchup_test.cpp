@@ -6,6 +6,10 @@ int main() {
     assert(tsvitch::archiveDaySlots(1000,1000+23*3600).size()==46);
     assert(tsvitch::archiveDaySlots(1000,1000+25*3600).size()==50);
     assert(tsvitch::archiveDaySlots(1000,1000).empty());
+    tsvitch::LiveM3u8 liveMovie;liveMovie.groupTitle="UK Movies";liveMovie.url="https://p.test/live/u/p/15.ts";
+    tsvitch::classifyMedia(liveMovie);assert(liveMovie.contentType=="live");
+    liveMovie.contentType="live";liveMovie.url="https://p.test/hls/movies.m3u8";
+    tsvitch::classifyMedia(liveMovie);assert(liveMovie.contentType=="live");
     const auto list=tsvitch::parsePlaylist(R"m3u(#EXTM3U x-tvg-url="guide.xml.gz" catchup="append" catchup-source="?utc={utc}&duration={duration}" catchup-days="7"
 #EXTINF:-1 tvg-id="news.il" tvg-logo="/logo.png" group-title="חדשות, ישראל",ערוץ חדשות
 https://provider.test/live/u/p/15.ts

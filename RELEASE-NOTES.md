@@ -1,4 +1,4 @@
-# TsVitch 0.5.0 — Refael Bar
+# TsVitch 0.5.1 — Refael Bar
 
 ## התקנה ושימוש
 
