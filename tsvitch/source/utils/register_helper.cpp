@@ -1,6 +1,7 @@
 
 
 #include "fragment/home_live.hpp"
+#include "utils/iptv_browser.hpp"
 #include "fragment/home_history.hpp"
 #include "fragment/home_favorites.hpp"
 #include "fragment/home_downloads.hpp"
@@ -32,6 +33,7 @@
 #include "view/sponsors_view.hpp"
 
 void Register::initCustomView() {
+    brls::Application::registerXMLView("IptvLibrary", tsvitch::createIptvLibrary);
     brls::Application::registerXMLView("AutoTabFrame", AutoTabFrame::create);
     brls::Application::registerXMLView("RecyclingGrid", RecyclingGrid::create);
     brls::Application::registerXMLView("VideoView", VideoView::create);

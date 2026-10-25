@@ -18,7 +18,7 @@ HistoryManager* HistoryManager::get() {
 void HistoryManager::add(const tsvitch::LiveM3u8& channel) {
     // Rimuovi eventuali duplicati (basato su id)
     ring_.erase(
-        std::remove_if(ring_.begin(), ring_.end(), [&](const tsvitch::LiveM3u8& c) { return c.id == channel.id; }),
+        std::remove_if(ring_.begin(), ring_.end(), [&](const tsvitch::LiveM3u8& c) { return c.url == channel.url; }),
         ring_.end());
     // Inserisci in testa
     ring_.push_front(channel);

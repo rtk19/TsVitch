@@ -1,3 +1,7 @@
+## 0.4.0 (rtk19 fork)
+
+Hebrew rendering, categorized Xtream VOD/live TV, player track selection, programme details and XMLTV EPG, and verified in-app updates from this fork. See [release notes](RELEASE-NOTES.md) for installation, validation and limitations.
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

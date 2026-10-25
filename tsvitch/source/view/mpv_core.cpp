@@ -290,6 +290,11 @@ void MPVCore::init() {
     mpvSetOptionString(mpv, "config-dir", ProgramConfig::instance().getConfigDir().c_str());
     mpvSetOptionString(mpv, "ytdl", "no");
     mpvSetOptionString(mpv, "audio-channels", "stereo");
+    const std::string subtitleFonts = BRLS_ASSET("font");
+    mpvSetOptionString(mpv, "sub-fonts-dir", subtitleFonts.c_str());
+    mpvSetOptionString(mpv, "sub-font", "Noto Sans Hebrew");
+    mpvSetOptionString(mpv, "slang", "he,heb,en,eng");
+    mpvSetOptionString(mpv, "sub-visibility", "yes");
     mpvSetOptionString(mpv, "idle", "yes");
     mpvSetOptionString(mpv, "loop-file", "no");
     mpvSetOptionString(mpv, "osd-level", "0");
@@ -467,11 +472,11 @@ void MPVCore::clean() {
     check_error(mpvCommandString(this->mpv, "quit"));
 
     brls::Application::getWindowFocusChangedEvent()->unsubscribe(focusSubscription);
-    
+
     if (hasExitSubscription) {
         brls::Application::getExitEvent()->unsubscribe(exitEventSubscription);
     }
-    
+
     if (hasExitDoneSubscription) {
         brls::Application::getExitDoneEvent()->unsubscribe(exitDoneEventSubscription);
     }
@@ -845,6 +850,7 @@ void MPVCore::eventMainLoop() {
                 break;
             case MPV_EVENT_END_FILE: {
                 brls::Logger::info("========> MPV_STOP");
+                mpvCoreEvent.fire(MpvEventEnum::LOADING_END);
                 mpvCoreEvent.fire(MpvEventEnum::MPV_STOP);
                 video_stopped = true;
                 auto node     = (mpv_event_end_file *)event->data;
@@ -995,6 +1001,10 @@ void MPVCore::eventMainLoop() {
                         if (video_seeking) {
                             brls::Logger::info("========> VIDEO SEEKING");
                             mpvCoreEvent.fire(MpvEventEnum::LOADING_START);
+                        } else if (data) {
+                            int buffering = 0;
+                            if (mpvGetProperty(mpv, "paused-for-cache", MPV_FORMAT_FLAG, &buffering) >= 0 && !buffering)
+                                mpvCoreEvent.fire(MpvEventEnum::LOADING_END);
                         }
                         break;
                     case 15:

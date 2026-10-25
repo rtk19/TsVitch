@@ -1,3 +1,4 @@
+#include <borealis/core/i18n.hpp>
 #include <utility>
 #include <unordered_map>
 #include <borealis/core/touch/tap_gesture.hpp>
@@ -7,6 +8,7 @@
 #include <borealis/views/tab_frame.hpp>
 
 #include "fragment/home_live.hpp"
+#include "utils/iptv_browser.hpp"
 #include "view/recycling_grid.hpp"
 #include "view/video_card.hpp"
 #include "view/grid_dropdown.hpp"
@@ -193,6 +195,9 @@ public:
         // brls::Logger::info("cellForRow: {} [{}]", r.title, index);
         RecyclingGridItemLiveVideoCard* item = (RecyclingGridItemLiveVideoCard*)recycler->dequeueReusableCell("Cell");
         item->setChannel(r);
+        item->registerAction(brls::getStr("iptv/s24"), brls::BUTTON_RSB, [channel = r](brls::View*) {
+            tsvitch::showProgrammeInfo(channel); return true;
+        });
         return item;
     }
 
@@ -216,10 +221,10 @@ private:
 HomeLive::HomeLive() {
     this->inflateFromXMLRes("xml/fragment/home_live.xml");
     brls::Logger::info("Fragment HomeLive: constructor called");
-    
+
     // Inizializza il flag di validità
     validityFlag = std::make_shared<std::atomic<bool>>(true);
-    
+
     // Sottoscrivi all'evento di uscita per cancellare tutti i task asincroni
     exitEventSubscription = brls::Application::getExitEvent()->subscribe([this]() {
         brls::Logger::info("HomeLive: Exit event received, canceling all async operations");
@@ -228,7 +233,7 @@ HomeLive::HomeLive() {
         }
     });
     hasExitSubscription = true;
-    
+
     recyclingGrid->registerCell("Cell", []() { return RecyclingGridItemLiveVideoCard::create(); });
 
     upRecyclingGrid->registerCell("Cell", []() { return DynamicGroupChannels::create(); });
@@ -241,7 +246,7 @@ HomeLive::HomeLive() {
             recyclingGrid->showSkeleton();
             upRecyclingGrid->setVisibility(brls::Visibility::GONE);
         });
-        
+
         ChannelManager::get()->remove();
         this->requestLiveList();
         //reset index group
@@ -256,7 +261,7 @@ HomeLive::HomeLive() {
             recyclingGrid->showSkeleton();
             upRecyclingGrid->setVisibility(brls::Visibility::GONE);
         });
-        
+
         ChannelManager::get()->remove();
         this->requestLiveList();
         //reset index group
@@ -265,35 +270,35 @@ HomeLive::HomeLive() {
 
     // Sottoscrivi all'evento di cambio Xtream
     OnXtreamChanged.subscribe([this](const XtreamData& xtreamData) {
-        brls::Logger::debug("OnXtreamChanged: url={}, username={}, showing skeleton and requesting channel list", 
+        brls::Logger::debug("OnXtreamChanged: url={}, username={}, showing skeleton and requesting channel list",
                            xtreamData.url, xtreamData.username);
         // Mostra lo skeleton per indicare che stiamo caricando
         brls::Threading::sync([this]() {
             recyclingGrid->showSkeleton();
             upRecyclingGrid->setVisibility(brls::Visibility::GONE);
         });
-        
+
         ChannelManager::get()->remove();
         this->requestLiveList();
         //reset index group
         this->selectGroupIndex(0);
     });
-    
+
     // Mostra sempre lo skeleton all'inizio per UI non-bloccante
     brls::Logger::debug("HomeLive constructor: Showing skeleton for non-blocking UI");
     recyclingGrid->showSkeleton();
     upRecyclingGrid->setVisibility(brls::Visibility::GONE);
-    
+
     // Imposta il flag per indicare che il caricamento è in corso
     isInitialLoadInProgress = true;
-    
+
     // Check if we're in Xtream mode and load channels immediately
     int iptvMode = ProgramConfig::instance().getSettingItem(SettingItem::IPTV_MODE, 0);
     brls::Logger::info("HomeLive constructor: IPTV mode is {}", iptvMode);
-    
+
     if (iptvMode == 1) {
         brls::Logger::info("HomeLive constructor: Xtream mode detected, using smart cache approach");
-        
+
         // Prova prima la cache intelligente anche per Xtream
         brls::Threading::async([this, validityFlag = this->validityFlag] {
             // Controlla se l'app è ancora valida prima di procedere
@@ -301,16 +306,16 @@ HomeLive::HomeLive() {
                 brls::Logger::debug("HomeLive: Xtream async task canceled - app exiting");
                 return;
             }
-            
-            auto cachedChannels = ChannelManager::get()->loadIfValid(); 
-            
+
+            auto cachedChannels = ChannelManager::get()->loadIfValid();
+
             brls::sync([this, cachedChannels, validityFlag]() {
                 // Controlla di nuovo la validità prima di aggiornare l'UI
                 if (!validityFlag || !validityFlag->load()) {
                     brls::Logger::debug("HomeLive: Xtream sync task canceled - app exiting");
                     return;
                 }
-                
+
                 if (!cachedChannels.empty()) {
                     brls::Logger::info("HomeLive: Using valid Xtream cache with {} channels", cachedChannels.size());
                     this->onLiveList(cachedChannels, false);
@@ -323,7 +328,7 @@ HomeLive::HomeLive() {
         });
     } else {
         brls::Logger::debug("HomeLive constructor: M3U8 mode detected, will use intelligent caching");
-        
+
         // Per M3U8 mode, usa cache intelligente con timeout più lungo
         brls::Threading::async([this, validityFlag = this->validityFlag] {
             // Controlla se l'app è ancora valida prima di procedere
@@ -331,20 +336,20 @@ HomeLive::HomeLive() {
                 brls::Logger::debug("HomeLive: M3U8 async task canceled - app exiting");
                 return;
             }
-            
+
             brls::Logger::debug("HomeLive: Starting smart cache check in background thread");
-            
+
             // Cache più lunga per M3U8 (1 mese) perché cambia meno frequentemente
             auto cachedChannels = ChannelManager::get()->loadIfValid();
             brls::Logger::info("HomeLive: Smart cache check completed, found {} channels", cachedChannels.size());
-            
+
             brls::sync([this, cachedChannels, validityFlag]() {
                 // Controlla di nuovo la validità prima di aggiornare l'UI
                 if (!validityFlag || !validityFlag->load()) {
                     brls::Logger::debug("HomeLive: M3U8 sync task canceled - app exiting");
                     return;
                 }
-                
+
                 if (!cachedChannels.empty()) {
                     brls::Logger::info("HomeLive constructor: Using valid M3U8 cache ({} channels found)", cachedChannels.size());
                     this->onLiveList(cachedChannels, false);
@@ -408,19 +413,19 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
 
     // Salva channelsList SUBITO per accesso thread-safe
     this->channelsList = std::move(result); // Move invece di copy!
-    
+
     // Fai il grouping e UI update SUL MAIN THREAD per evitare il delay di 36s del brls::sync()
     // Meglio bloccare 600ms che aspettare 36 secondi!
     auto isValidFlag = validityFlag;
     brls::sync([this, isValidFlag, firstLoad]() {
         if (!isValidFlag->load()) return;
-        
+
         auto grouping_start = std::chrono::high_resolution_clock::now();
-        
+
         // Raggruppa i canali per groupTitle - unica passata
         std::unordered_map<std::string, std::vector<size_t>> groupIndices;
         groupIndices.reserve(100);
-        
+
         for (size_t i = 0; i < this->channelsList.size(); ++i) {
             std::string groupTitle = this->channelsList[i].groupTitle;
             // Assegna un nome di default ai canali senza gruppo
@@ -429,25 +434,25 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
             }
             groupIndices[groupTitle].push_back(i);
         }
-        
+
         std::vector<std::string> groupTitles;
         groupTitles.reserve(groupIndices.size());
         for (const auto& pair : groupIndices) {
             groupTitles.push_back(pair.first);
         }
-        
+
         // Ordina alfabeticamente
         std::sort(groupTitles.begin(), groupTitles.end());
-        
+
         auto grouping_end = std::chrono::high_resolution_clock::now();
         auto grouping_duration = std::chrono::duration_cast<std::chrono::milliseconds>(grouping_end - grouping_start);
         brls::Logger::info("HomeLive: Grouping completed in {}ms - Found {} groups", grouping_duration.count(), groupTitles.size());
-        
+
         // Leggi lastIndex dal config
         int lastIndex = ProgramConfig::instance().getSettingItem(SettingItem::GROUP_SELECTED_INDEX, 0);
         if (lastIndex >= (int)groupTitles.size()) lastIndex = 0;
         std::string selectedGroup = groupTitles.empty() ? "" : groupTitles[lastIndex];
-        
+
         // Prepara il gruppo selezionato
         tsvitch::LiveM3u8ListResult filtered;
         if (!selectedGroup.empty() && groupIndices.count(selectedGroup)) {
@@ -457,23 +462,23 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
                 filtered.push_back(this->channelsList[idx]);
             }
         }
-        
+
         brls::Logger::info("HomeLive: Selected group '{}' with {} channels", selectedGroup, filtered.size());
-        
+
         // Cache il gruppo selezionato
         {
             std::lock_guard<std::mutex> lock(groupCacheMutex);
             groupCache.clear();
             groupCache[selectedGroup] = filtered;
         }
-        
+
         // Imposta il DataSource principale (già sul main thread, no brls::sync necessario)
         brls::Logger::info("HomeLive: Setting DataSource with {} filtered channels", filtered.size());
         if (filtered.empty())
             recyclingGrid->setEmpty();
         else
             recyclingGrid->setDataSource(new DataSourceLiveVideoList(std::move(filtered)));
-        
+
         // Setup UI gruppi
         if (groupTitles.size() > 1) {
             upRecyclingGrid->setVisibility(brls::Visibility::VISIBLE);
@@ -502,47 +507,47 @@ void HomeLive::onLiveList(tsvitch::LiveM3u8ListResult result, bool firstLoad) {
         } else {
             upRecyclingGrid->setVisibility(brls::Visibility::GONE);
         }
-        
+
         // Precarica gli altri gruppi in background - IN UN THREAD ASYNC SEPARATO per non bloccare l'UI
-        brls::Threading::async([this, groupTitles = std::move(groupTitles), groupIndices = std::move(groupIndices), 
+        brls::Threading::async([this, groupTitles = std::move(groupTitles), groupIndices = std::move(groupIndices),
                                 selectedGroup, isValidFlag]() {
             if (groupTitles.size() <= 1) return;
-            
+
             auto preload_start = std::chrono::high_resolution_clock::now();
             size_t groupsProcessed = 0;
-            
+
             for (const auto& group : groupTitles) {
                 if (!isValidFlag->load()) return;
                 if (group == selectedGroup) continue;
-                
+
                 tsvitch::LiveM3u8ListResult filteredBg;
                 if (groupIndices.count(group)) {
                     const auto& indices = groupIndices.at(group);
                     filteredBg.reserve(indices.size());
-                    
+
                     for (size_t idx : indices) {
                         if (idx < this->channelsList.size()) {
                             filteredBg.push_back(this->channelsList[idx]);
                         }
                     }
                 }
-                
+
                 {
                     std::lock_guard<std::mutex> lock(groupCacheMutex);
                     groupCache[group] = std::move(filteredBg);
                 }
-                
+
                 groupsProcessed++;
                 if (groupsProcessed % 10 == 0) {
                     std::this_thread::yield();
                 }
             }
-            
+
             auto preload_end = std::chrono::high_resolution_clock::now();
             auto preload_duration = std::chrono::duration_cast<std::chrono::milliseconds>(preload_end - preload_start);
             brls::Logger::info("HomeLive: Background group preloading completed in {}ms ({} groups)", preload_duration.count(), groupsProcessed);
         });
-        
+
         // Salva in background se firstLoad (non blocca UI)
         if (firstLoad) {
             brls::Logger::info("HomeLive: First load detected, will save {} channels with timestamp (async)", this->channelsList.size());
@@ -654,37 +659,37 @@ void HomeLive::filter(const std::string& key) {
 
 void HomeLive::onShow() {
     brls::Logger::info("Fragment HomeLive: onShow called");
-    
+
     // Se il caricamento iniziale è ancora in corso, non fare nulla
     if (isInitialLoadInProgress) {
         brls::Logger::debug("HomeLive onShow: Initial load still in progress, skipping");
         return;
     }
-    
+
     // Smart refresh: controlla se abbiamo già canali in memoria
     if (!channelsList.empty()) {
         brls::Logger::debug("HomeLive onShow: Already have {} channels in memory, checking if refresh needed", channelsList.size());
-        
+
         // Per decidere se ricaricare, controlla l'età della cache
         int iptvMode = ProgramConfig::instance().getSettingItem(SettingItem::IPTV_MODE, 0);
         int maxCacheAge = (iptvMode == 1) ? 5 : 15; // Xtream: 5 min, M3U8: 15 min
-        
+
         brls::Threading::async([this, maxCacheAge, iptvMode, validityFlag = this->validityFlag] {
             // Controlla se l'app è ancora valida prima di procedere
             if (!validityFlag || !validityFlag->load()) {
                 brls::Logger::debug("HomeLive onShow: async task canceled - app exiting");
                 return;
             }
-            
+
             bool needsRefresh = !ChannelManager::get()->isCacheValid(maxCacheAge);
-            
+
             brls::sync([this, needsRefresh, iptvMode, validityFlag]() {
                 // Controlla di nuovo la validità prima di aggiornare l'UI
                 if (!validityFlag || !validityFlag->load()) {
                     brls::Logger::debug("HomeLive onShow: sync task canceled - app exiting");
                     return;
                 }
-                
+
                 if (needsRefresh) {
                     brls::Logger::info("HomeLive onShow: Cache expired, refreshing channels (IPTV mode: {})", iptvMode);
                     this->requestLiveList();
@@ -698,10 +703,10 @@ void HomeLive::onShow() {
         });
         return;
     }
-    
+
     // Se non abbiamo canali e il caricamento iniziale non è in corso, usa lo stesso meccanismo del costruttore
     brls::Logger::debug("HomeLive onShow: No channels in memory and no initial load in progress, loading...");
-    
+
     int iptvMode = ProgramConfig::instance().getSettingItem(SettingItem::IPTV_MODE, 0);
     brls::Threading::async([this, iptvMode, validityFlag = this->validityFlag] {
         // Controlla se l'app è ancora valida prima di procedere
@@ -709,16 +714,16 @@ void HomeLive::onShow() {
             brls::Logger::debug("HomeLive onShow: fallback async task canceled - app exiting");
             return;
         }
-        
+
         auto cachedChannels = ChannelManager::get()->loadIfValid();
-        
+
         brls::sync([this, cachedChannels, validityFlag]() {
             // Controlla di nuovo la validità prima di aggiornare l'UI
             if (!validityFlag || !validityFlag->load()) {
                 brls::Logger::debug("HomeLive onShow: fallback sync task canceled - app exiting");
                 return;
             }
-            
+
             if (!cachedChannels.empty()) {
                 brls::Logger::info("HomeLive onShow: Using valid cached channels ({} channels)", cachedChannels.size());
                 this->onLiveList(cachedChannels, false);
@@ -728,7 +733,7 @@ void HomeLive::onShow() {
             }
         });
     });
-    
+
     brls::Logger::debug("HomeLive onShow: onShow completed");
 }
 
@@ -759,23 +764,23 @@ void HomeLive::onCreate() {
     //     });
     // }
 
-HomeLive::~HomeLive() { 
+HomeLive::~HomeLive() {
     brls::Logger::debug("Fragment HomeLiveActivity: delete");
-    
+
     // Cancella la sottoscrizione all'evento di uscita solo se è stata creata
     if (hasExitSubscription) {
         brls::Application::getExitEvent()->unsubscribe(exitEventSubscription);
     }
-    
+
     // Invalidate the flag to prevent callbacks from accessing this object
     if (validityFlag) {
         validityFlag->store(false);
     }
 }
 
-brls::View* HomeLive::create() { 
+brls::View* HomeLive::create() {
     brls::Logger::debug("HomeLive::create() called - creating new HomeLive instance");
-    return new HomeLive(); 
+    return new HomeLive();
 }
 
 void HomeLive::downloadVideo() {
@@ -788,40 +793,40 @@ void HomeLive::downloadVideo() {
 
     // Ottieni il canale
     tsvitch::LiveM3u8 channel = item->getChannel();
-    
+
     // Controlla se è una live stream in corso
     if (tsvitch::isLiveStream(channel.url, channel.title)) {
         brls::Logger::warning("HomeLive: Cannot download live streams");
         tsvitch::showLiveStreamDownloadError();
         return;
     }
-    
+
     // Avvia il download
     std::string downloadId = DownloadManager::instance().startDownload(
-        channel.title, 
-        channel.url, 
+        channel.title,
+        channel.url,
         channel.logo,  // URL dell'immagine
         [](const std::string& id, float progress, size_t downloaded, size_t total) {
             // Callback di progresso - aggiorna il manager globale
             std::string progressText = fmt::format("{:.1f}%", progress);
             std::string statusText = fmt::format("{} / {} bytes", downloaded, total);
-            
+
             brls::sync([id, progress, progressText, statusText]() {
                 tsvitch::DownloadProgressManager::getInstance()->updateProgress(
                     id, progress, statusText, progressText
                 );
             });
-            
+
             brls::Logger::debug("Download {}: {:.1f}% ({}/{} bytes)", id, progress, downloaded, total);
         },
         [](const std::string& id, const std::string& filePath) {
             // Callback di completamento
             brls::Logger::info("Download {} completed: {}", id, filePath);
-            
+
             brls::sync([id, filePath]() {
                 // Nascondi l'overlay
                 tsvitch::DownloadProgressManager::getInstance()->hideDownloadProgress(id);
-                
+
                 // Non mostrare notifica se è un download già completato (duplicato)
                 if (filePath != "Already completed") {
                     brls::Application::notify("Download completato!");
@@ -840,11 +845,11 @@ void HomeLive::downloadVideo() {
             });
         }
     );
-    
+
     if (!downloadId.empty()) {
         // Controlla lo stato del download per vedere se è già completato
         auto downloadItem = DownloadManager::instance().getDownload(downloadId);
-        
+
         if (downloadItem.status == DownloadStatus::COMPLETED) {
             // È un download già completato, non mostrare overlay
             brls::Logger::info("HomeLive: Skipped showing overlay for already completed download {} ({})", downloadId, channel.title);
@@ -853,7 +858,7 @@ void HomeLive::downloadVideo() {
             tsvitch::DownloadProgressManager::getInstance()->showDownloadProgress(
                 downloadId, channel.title, channel.url
             );
-            
+
             brls::Application::notify("Download avviato: " + channel.title);
             brls::Logger::info("HomeLive: Started download {} for {}", downloadId, channel.title);
         }

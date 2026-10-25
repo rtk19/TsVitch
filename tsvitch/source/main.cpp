@@ -7,6 +7,8 @@
 #endif
 
 #include "tsvitch.h"
+#include "utils/app_updater.hpp"
+#include "config/server_config.h"
 
 #include "utils/config_helper.hpp"
 #include "utils/activity_helper.hpp"
@@ -21,6 +23,7 @@
 #endif
 
 int main(int argc, char* argv[]) {
+    if (argc > 0 && argv[0]) tsvitch::setApplicationPath(argv[0]);
     for (int i = 1; i < argc; i++) {
         if (std::strcmp(argv[i], "-d") == 0) {
             brls::Logger::setLogLevel(brls::LogLevel::LOG_DEBUG);
@@ -82,10 +85,11 @@ int main(int argc, char* argv[]) {
         Intent::openHint();
     }
 
+    if (std::string(SERVER_URL_VALUE).size() > 0) {
     //check if user_id is set, if not register a new user
     if (ProgramConfig::instance().getDeviceID().empty()) {
         brls::Logger::info("No user ID found, registering a new user...");
-    
+
         CLIENT::register_user(
             [](const std::string& user_id, int status) {
                 if (status == 200) {
@@ -113,6 +117,8 @@ int main(int argc, char* argv[]) {
             });
     }
 
+    }
+
     GA("open_app", {{"version", APPVersion::instance().getVersionStr()},
                     {"language", brls::Application::getLocale()},
                     {"window", fmt::format("{}x{}", brls::Application::windowWidth, brls::Application::windowHeight)}})
@@ -123,10 +129,11 @@ int main(int argc, char* argv[]) {
     }
 
     brls::Logger::info("mainLoop done");
-    
+
     // Cleanup download progress manager
     tsvitch::DownloadProgressManager::getInstance()->cleanup();
-    
+
+    tsvitch::shutdownUpdater();
     ProgramConfig::instance().exit(argv);
 
     HistoryManager::get()->save();
@@ -140,6 +147,7 @@ int main(int argc, char* argv[]) {
     }
 #endif
 
+    tsvitch::applyPendingUpdate();
     return EXIT_SUCCESS;
 }
 

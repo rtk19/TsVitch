@@ -1,3 +1,4 @@
+#include <borealis/core/i18n.hpp>
 /*
     Copyright 2020-2021 natinusala
 
@@ -17,6 +18,7 @@
 #include <borealis/core/touch/tap_gesture.hpp>
 
 #include "activity/main_activity.hpp"
+#include "utils/iptv_browser.hpp"
 #include "utils/activity_helper.hpp"
 #include "utils/dialog_helper.hpp"
 #include "view/custom_button.hpp"
@@ -31,11 +33,13 @@ MainActivity::~MainActivity() { brls::Logger::debug("del MainActivity"); }
 
 void MainActivity::onContentAvailable() {
     brls::Logger::info("MainActivity::onContentAvailable() called");
-    
+
+    this->registerAction(brls::getStr("iptv/s25"), brls::BUTTON_Y, [](brls::View*) { tsvitch::openIptvBrowser(); return true; });
+
     // Controlla la connettività internet
-    bool hasInternet = brls::Application::getPlatform()->hasEthernetConnection() || 
+    bool hasInternet = brls::Application::getPlatform()->hasEthernetConnection() ||
                       brls::Application::getPlatform()->hasWirelessConnection();
-    
+
     if (!hasInternet) {
         brls::Logger::info("No internet connection detected, navigating to Downloads tab");
         // Se non c'è internet, vai direttamente al tab Downloads (indice 2)
@@ -97,7 +101,7 @@ void MainActivity::onContentAvailable() {
             if (!this->settingBtn.getView() || this->settingBtn->getChildren().empty()) {
                 return;
             }
-            
+
             SVGImage* image = dynamic_cast<SVGImage*>(this->settingBtn->getChildren()[0]);
             if (!image) return;
             if (value) {
@@ -117,7 +121,7 @@ void MainActivity::onContentAvailable() {
             if (!this->tabFrame.getView()) {
                 return (brls::View*)nullptr;
             }
-            
+
             if (tabFrame->getSideBarPosition() == AutoTabBarPosition::LEFT) {
                 if (direction == brls::FocusDirection::RIGHT) {
                     return (brls::View*)this->tabFrame->getActiveTab();
@@ -141,7 +145,7 @@ void MainActivity::resetSettingIcon() {
         if (!this->settingBtn.getView() || this->settingBtn->getChildren().empty()) {
             return;
         }
-        
+
         SVGImage* image = dynamic_cast<SVGImage*>(this->settingBtn->getChildren()[0]);
         if (!image) return;
 

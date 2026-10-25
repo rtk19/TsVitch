@@ -158,20 +158,20 @@ void SettingsActivity::onContentAvailable() {
     btnProxyTest->registerClickAction([](...) -> bool {
         // Testa o proxy fazendo uma requisição simples
         std::string proxyUrl = ProgramConfig::instance().getProxyUrl();
-        
+
         if (proxyUrl.empty()) {
             brls::Application::notify("tsvitch/setting/tools/test/proxy_none"_i18n);
             return true;
         }
-        
+
         brls::Application::notify("tsvitch/setting/tools/test/proxy_testing"_i18n + ": " + proxyUrl);
-        
+
         // Faz o teste usando a configuração atual do sistema
         try {
             // Usa a configuração de proxy atual que já foi aplicada ao sistema
-            auto response = cpr::Get(cpr::Url{"http://httpbin.org/ip"}, 
+            auto response = cpr::Get(cpr::Url{"http://httpbin.org/ip"},
                                    cpr::Timeout{5000});
-            
+
             if (response.status_code == 200) {
                 brls::Application::notify("tsvitch/setting/tools/test/proxy_success"_i18n);
             } else if (response.status_code == 0) {
@@ -182,7 +182,7 @@ void SettingsActivity::onContentAvailable() {
         } catch (const std::exception& e) {
             brls::Application::notify("tsvitch/setting/tools/test/proxy_error"_i18n + ": " + std::string(e.what()));
         }
-        
+
         return true;
     });
 
@@ -257,7 +257,7 @@ void SettingsActivity::onContentAvailable() {
             label->setMarginLeft(20);
             label->setMarginBottom(20);
              this->boxOpensource->addView(label);
-            
+
         }
     }
 
@@ -456,7 +456,7 @@ void SettingsActivity::onContentAvailable() {
             "tsvitch/setting/app/others/language/ryukyuan"_i18n, "tsvitch/setting/app/others/language/chinese_t"_i18n,
             "tsvitch/setting/app/others/language/chinese_s"_i18n, "tsvitch/setting/app/others/language/korean"_i18n,
             "tsvitch/setting/app/others/language/italiano"_i18n,
-            "tsvitch/setting/app/others/language/portuguese_br"_i18n},
+            "tsvitch/setting/app/others/language/portuguese_br"_i18n, "עברית"},
         langIndex, [](int data) {
             if (langIndex == data) return false;
             langIndex       = data;
@@ -537,7 +537,7 @@ void SettingsActivity::onContentAvailable() {
             OnM3U8UrlChanged.fire(); // Notifica tutte le view interessate
         },
         "Enter M3U8 playlist URL", "http://example.com/playlist.m3u8", 255);
-    
+
     // Soluzione definitiva per l'overflow del testo nell'InputCell
     btnM3U8Input->detail->setMaxWidth(140);      // Riduciamo a 140px per essere sicuri
     btnM3U8Input->detail->setSingleLine(true);   // Forza una sola linea
@@ -577,7 +577,7 @@ void SettingsActivity::onContentAvailable() {
                          MPVCore::instance().restart();
                      });
     // Inizializza i controlli Xtream Codes IPTV
-    btnXtreamServer->init("Server URL", conf.getXtreamServerUrl(), 
+    btnXtreamServer->init("Server URL", conf.getXtreamServerUrl(),
         [](const std::string& data) {
             ProgramConfig::instance().setXtreamServerUrl(data);
             // Notifica il cambio dei parametri Xtream
@@ -586,10 +586,10 @@ void SettingsActivity::onContentAvailable() {
             xtreamData.username = ProgramConfig::instance().getXtreamUsername();
             xtreamData.password = ProgramConfig::instance().getXtreamPassword();
             OnXtreamChanged.fire(xtreamData);
-        }, 
+        },
         "Enter Xtream Codes server URL", "http://server.com:8080", 255);
-    
-    btnXtreamUsername->init("Username", conf.getXtreamUsername(), 
+
+    btnXtreamUsername->init("Username", conf.getXtreamUsername(),
         [](const std::string& data) {
             ProgramConfig::instance().setXtreamUsername(data);
             // Notifica il cambio dei parametri Xtream
@@ -598,10 +598,10 @@ void SettingsActivity::onContentAvailable() {
             xtreamData.username = data;
             xtreamData.password = ProgramConfig::instance().getXtreamPassword();
             OnXtreamChanged.fire(xtreamData);
-        }, 
+        },
         "Enter your username", "username", 255);
-    
-    btnXtreamPassword->init("Password", conf.getXtreamPassword(), 
+
+    btnXtreamPassword->init("Password", conf.getXtreamPassword(),
         [](const std::string& data) {
             ProgramConfig::instance().setXtreamPassword(data);
             // Notifica il cambio dei parametri Xtream
@@ -610,7 +610,7 @@ void SettingsActivity::onContentAvailable() {
             xtreamData.username = ProgramConfig::instance().getXtreamUsername();
             xtreamData.password = data;
             OnXtreamChanged.fire(xtreamData);
-        }, 
+        },
         "Enter your password", "password", 255);
 
     // Imposta la visibilità iniziale delle sezioni
@@ -618,27 +618,27 @@ void SettingsActivity::onContentAvailable() {
 
     // Inizializza tutti gli altri selettori...
     // (Il resto del codice esistente)
-    
+
     brls::Logger::debug("SettingsActivity: onContentAvailable completed");
 }
 
 void SettingsActivity::updateIPTVSectionVisibility() {
     auto& conf = ProgramConfig::instance();
     int currentMode = conf.getIntOption(SettingItem::IPTV_MODE);
-    
+
     // 0 = M3U8, 1 = Xtream
     bool showM3U8 = (currentMode == 0);
     bool showXtream = (currentMode == 1);
-    
+
     // Mostra/nascondi le sezioni
     if (boxM3U8Section) {
         boxM3U8Section->setVisibility(showM3U8 ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
     }
-    
+
     if (boxXtreamSection) {
         boxXtreamSection->setVisibility(showXtream ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
     }
-    
+
     brls::Logger::debug("IPTV Section Visibility updated: M3U8={}, Xtream={}", showM3U8, showXtream);
 }
 

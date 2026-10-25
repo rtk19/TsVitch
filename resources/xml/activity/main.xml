@@ -43,6 +43,9 @@
                  iconActivate="@res/svg/ico-history-activate.svg">
                 <HomeHistory/>
             </Tab>
+            <Tab label="VOD" fontSize="18" icon="@res/svg/ico-home.svg" iconActivate="@res/svg/ico-home-activate.svg">
+                <IptvLibrary/>
+            </Tab>
         </AutoTabFrame>
         <brls:Box
                 wireframe="false"

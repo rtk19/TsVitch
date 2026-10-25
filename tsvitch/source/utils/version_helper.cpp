@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include "utils/release_version.hpp"
 #include <fmt/format.h>
 #include <cpr/cpr.h>
 #include <pystring.h>
@@ -58,18 +59,7 @@ std::string APPVersion::getPlatform() {
 std::string APPVersion::getPackageName() { return std::string{STR(BUILD_PACKAGE_NAME)}; }
 
 bool APPVersion::needUpdate(std::string latestVersion) {
-    if (latestVersion.length() < 5) brls::Application::quit();
-    if (latestVersion[0] == 'v') latestVersion = latestVersion.substr(1, latestVersion.length() - 1);
-    std::vector<std::string> v;
-    pystring::split(latestVersion, v, ".");
-    if (v.size() < 3) {
-        brls::Logger::error("Cannot parse version info: {}", latestVersion);
-        return false;
-    }
-    if (atoi(v[0].c_str()) > major) return true;
-    if (atoi(v[1].c_str()) > minor) return true;
-    if (atoi(v[2].c_str()) > revision) return true;
-    return false;
+    return tsvitch::isNewerStableRelease(latestVersion, {major, minor, revision});
 }
 
 void APPVersion::checkUpdate(int delay, bool showUpToDateDialog) {

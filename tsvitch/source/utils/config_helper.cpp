@@ -54,6 +54,7 @@ using namespace brls::literals;
 
 std::unordered_map<SettingItem, ProgramOption> ProgramConfig::SETTING_MAP = {
 
+    {SettingItem::XMLTV_URL, {"xmltv_url", {}, {}, 0}},
     {SettingItem::CUSTOM_UPDATE_API, {"custom_update_api", {}, {}, 0}},
     {SettingItem::APP_LANG,
      {"app_lang",
@@ -62,7 +63,7 @@ std::unordered_map<SettingItem, ProgramOption> ProgramConfig::SETTING_MAP = {
           brls::LOCALE_AUTO,
 #endif
           brls::LOCALE_EN_US, brls::LOCALE_JA, brls::LOCALE_RYU, brls::LOCALE_ZH_HANT, brls::LOCALE_ZH_HANS,
-          brls::LOCALE_Ko, brls::LOCALE_IT, brls::LOCALE_PT_BR},
+          brls::LOCALE_Ko, brls::LOCALE_IT, brls::LOCALE_PT_BR, "he"},
       {},
 #if defined(__SWITCH__) || defined(__PSV__) || defined(PS4)
       0}},
@@ -180,10 +181,10 @@ std::unordered_map<SettingItem, ProgramOption> ProgramConfig::SETTING_MAP = {
     {SettingItem::M3U8_URL_ITEM, {"m3u8_url", {}, {}, 0}},
     {SettingItem::PROXY_URL_ITEM, {"proxy_url", {}, {}, 0}},
     {SettingItem::M3U8_TIMEOUT, {"m3u8_timeout", {"60", "120", "300", "600"}, {60000, 120000, 300000, 600000}, 2}}, // Default: 5 minuti
-    
+
     // IPTV Mode Selection
     {SettingItem::IPTV_MODE, {"iptv_mode", {"M3U8 Playlist", "Xtream Codes"}, {0, 1}, 0}}, // Default: M3U8
-    
+
     // Xtream Codes IPTV Settings
     {SettingItem::XTREAM_SERVER_URL, {"xtream_server_url", {}, {}, 0}},
     {SettingItem::XTREAM_USERNAME, {"xtream_username", {}, {}, 0}},
@@ -293,7 +294,7 @@ void ProgramConfig::load() {
 
     this->m3u8Url = getSettingItem(SettingItem::M3U8_URL_ITEM, this->getM3U8Url());
     this->proxyUrl = getSettingItem(SettingItem::PROXY_URL_ITEM, this->getProxyUrl());
-    
+
     // Configura o proxy se estiver definido
     if (!this->proxyUrl.empty()) {
         tsvitch::HTTP::setProxy(this->proxyUrl);
@@ -620,6 +621,8 @@ void ProgramConfig::init() {
     this->load();
 
     brls::FontLoader::USER_FONT_PATH = getConfigDir() + "/font.ttf";
+    if (access(brls::FontLoader::USER_FONT_PATH.c_str(), F_OK) == -1)
+        brls::FontLoader::USER_FONT_PATH = BRLS_ASSET("font/NotoSansHebrew.ttf");
     brls::FontLoader::USER_ICON_PATH = getConfigDir() + "/icon.ttf";
 
     if (access(brls::FontLoader::USER_ICON_PATH.c_str(), F_OK) == -1) {
@@ -796,13 +799,13 @@ void ProgramConfig::setProxyUrl(const std::string& url) {
     this->proxyUrl = url;
     brls::Logger::info("setProxyUrl: {}", proxyUrl);
     setSettingItem(SettingItem::PROXY_URL_ITEM, proxyUrl);
-    
+
     // Configura o proxy para todas as requisições HTTP
     tsvitch::HTTP::setProxy(proxyUrl);
-    
+
     // Dispara evento para notificar mudança no proxy
     OnProxyUrlChanged.fire();
-    
+
     GA("proxy_url", {{"url", proxyUrl}});
 }
 // Xtream Codes IPTV getters and setters

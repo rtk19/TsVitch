@@ -1,0 +1,464 @@
+{
+  "title": "TsVitch",
+  "github": "https://github.com/rtk19/TsVitch",
+  "github_release": "https://github.com/rtk19/TsVitch/releases/latest",
+  "setting": {
+    "quit_hint": "You are about to exit the application. Settings will take effect after the next launch",
+    "app": {
+      "tab": "יישום",
+      "playback": {
+        "header": "ניגון",
+        "report": "טעינת היסטוריית צפייה",
+        "player_bar": "הצגת סרגל התקדמות תמיד",
+        "low_quality": "פענוח באיכות נמוכה לחיסכון במעבד",
+        "in_memory_cache": "מטמון בזיכרון",
+        "hwdec": "פענוח חומרה",
+        "exit_fullscreen": "יציאה ממסך מלא בסיום",
+        "play_strategy": "אופן הניגון",
+        "auto_play_next_part": "ניגון החלק הבא אוטומטית",
+        "auto_play_recommend": "ניגון סרטונים מומלצים אוטומטית",
+        "auto_loop": "חזרה על הסרטון הנוכחי",
+        "auto_no": "השהיה בסיום הניגון",
+        "auto_hint": "\"Automatically play recommended videos\" will automatically play recommended videos after the episode.",
+        "sleep": "טיימר שינה",
+        "video_codec": "מקודד וידאו",
+        "audio_quality": "איכות שמע",
+        "video_format": "פורמט וידאו",
+        "player": "נגן"
+      },
+      "image": {
+        "header": "תמונה",
+        "texture": "מספר תמונות במטמון",
+        "threads": "מספר תהליכי טעינת תמונות"
+      },
+      "network": {
+        "header": "רשת",
+        "tls": "אימות תעודת TLS",
+        "proxy": "שרת מתווך",
+        "proxy_hint": "example: http://127.0.0.1:7890"
+      },
+      "ui": {
+        "header": "ממשק",
+        "tv_osd": "שליטה בנגן בסגנון טלוויזיה",
+        "window": "חלון",
+        "bottom_bar": "סרגל מקשים תחתון"
+      },
+      "others": {
+        "header": "אחר",
+        "vibration": "רטט בבקר",
+        "hide_bottom": "הסתרת סרגל המקשים",
+        "show_bottom": "הצגת סרגל המקשים",
+        "hide_fps": "הסתרת קצב פריימים",
+        "show_fps": "הצגת קצב פריימים",
+        "limited_fps": "קצב פריימים מרבי",
+        "limited_fps_vsync": "סנכרון אנכי",
+        "fullscreen": "מסך מלא",
+        "always_on_top": "תמיד מעל חלונות אחרים",
+        "tv_search": "חיפוש בסגנון טלוויזיה",
+        "clear_history": "מחיקת היסטוריית החיפוש",
+        "theme": {
+          "header": "ערכת נושא (נדרשת הפעלה מחדש)",
+          "1": "אוטומטי",
+          "2": "בהיר",
+          "3": "כהה"
+        },
+        "custom_theme": {
+          "header": "עיצוב מותאם (נדרשת הפעלה מחדש)"
+        },
+        "scale": {
+          "header": "גודל ממשק (נדרשת הפעלה מחדש)",
+          "544p": "544p",
+          "720p": "720p",
+          "900p": "900p",
+          "1080p": "1080p"
+        },
+        "language": {
+          "header": "שפה (נדרשת הפעלה מחדש)",
+          "auto": "אוטומטי",
+          "chinese_s": "סינית מפושטת",
+          "chinese_t": "סינית מסורתית",
+          "english": "אנגלית",
+          "japanese": "יפנית",
+          "ryukyuan": "ריוקיואנית",
+          "italiano": "איטלקית",
+          "korean": "קוריאנית",
+          "portuguese_br": "פורטוגזית ברזילאית"
+        },
+        "opencc": "המרת סינית אוטומטית (נדרשת הפעלה מחדש)",
+        "keymap": {
+          "header": "סגנון מקשים",
+          "xbox": "Xbox",
+          "ps": "PlayStation",
+          "keyboard": "מקלדת",
+          "swap": "החלפת כפתורים"
+        }
+      }
+    },
+    "tools": {
+      "tab": "כלים",
+      "m3u8": {
+        "header": "רשימת M3U8",
+        "input": "רשימת שידור מותאמת",
+        "timeout": "זמן המתנה להורדה בשניות",
+        "hint": "http://example.com/playlist.m3u8"
+      },
+      "proxy": {
+        "header": "הגדרות שרת מתווך",
+        "input": "שרת מתווך",
+        "hint": "http://127.0.0.1:8080 or socks5://127.0.0.1:1080"
+      },
+      "tutorial": {
+        "header": "מדריך",
+        "intro": "היכרות עם היישום (סרטון בסינית)",
+        "wiki": "מידע נוסף בוויקי",
+        "open": "התקנת סמל במסך הבית",
+        "error": "דיווח על תקלה",
+        "hot_key": "מקשי קיצור",
+        "font": "הגדרת גופן מותאם"
+      },
+      "test": {
+        "header": "אבחון",
+        "net": "אבחון רשת",
+        "proxy": "בדיקת שרת מתווך",
+        "proxy_none": "לא הוגדר שרת מתווך",
+        "proxy_testing": "בודק שרת מתווך",
+        "proxy_success": "שרת מתווך פועל כראוי ✓",
+        "proxy_failed": "תקלה בשרת המתווך - קוד",
+        "proxy_error": "שגיאה בבדיקת שרת מתווך",
+        "vibration": "בדיקת רטט"
+      },
+      "others": {
+        "header": "אחר",
+        "dlna": "נגן DLNA",
+        "dlna_waiting": "ממתין לשידור DLNA...",
+        "dlna_quit": "לצאת משידור DLNA?",
+        "up2date": "היישום מעודכן",
+        "checking_update": "בודק עדכונים...",
+        "release": "בדיקת עדכונים",
+        "config": "פתיחת תיקיית ההגדרות",
+        "config_dir": "הצגת תיקיית ההגדרות"
+      }
+    },
+    "about": {
+      "tab": "אודות",
+      "brief_header": "מבוא",
+      "repository": "מאגר",
+      "brief": "טלוויזיה גם ב־Switch",
+      "repo_header": "מאגר",
+      "author_header": "דברי היוצר",
+      "author": "טלוויזיה בכל מקום",
+      "contrib_header": "תרומה ותמיכה",
+      "contrib_text": "TsVitch is an open-source project: contributions, bug reports, and suggestions are welcome. If you like the project and want to support it, please consider becoming a sponsor. You can find all details and options in the GitHub repository.",
+      "contributors_header": "תורמים",
+      "sponsors_header": "תומכים",
+      "sponsor_qr": "תמיכה בפרויקט"
+    },
+    "opensource": {
+      "tab": "קוד פתוח"
+    },
+    "tutorial": {
+      "error_q1": "אין גישה לרשת",
+      "error_a1": "1. Make sure atmosphere and system firmware are up to date\n2. Check that the system time is correct\n3. Restore default network settings, including IP, DNS, etc.",
+      "error_q2": "סגירה בלתי צפויה",
+      "error_a2": "1. Use a Fat32 formatted memory card\n2. Make sure atmosphere and system firmware are up to date\n3. Wait for the developers to fix it",
+      "font_q1": "הגדרת גופן או סמל מותאם",
+      "font_a1": "1. Download the font or icon you want\n2. Rename the font to: font.ttf; Rename the icon to: icon.ttf\n3. Put the files in the configuration folder\n4. Restart the application",
+      "font_q2": "שאלות נפוצות",
+      "font_a2": "1. TsVitch prioritizes custom fonts, with built-in fonts as fallback\n2. \"Settings - Tools - Others\" offers a menu item to quickly open the configuration folder\n3. On Linux, TsVitch uses xdg-open to open the folder. If the folder does not open correctly, consider installing this tool"
+    },
+    "hot_keys": {
+      "common_header": "כללי",
+      "common_content": " /  Switch main page\n /  Switch secondary page",
+      "player_header": "נגן",
+      "player_content": " Increase speed, double click  to lock\n +  Forward\n Show/hide OSD\n Show/hide danmaku"
+    },
+    "net": {
+      "test": {
+        "header": "גישה לרשת",
+        "feed": "בקשת רשימת שידור"
+      },
+      "profile": {
+        "header": "רשת",
+        "subtitle": "איפוס הגדרות הרשת עשוי לפתור תקלות",
+        "ip": "כתובת IP",
+        "dns": "כתובת DNS"
+      }
+    }
+  },
+  "hints": {
+    "hint1": "בחרו משחק במסך הבית",
+    "hint2": "Hold  and press  to enter hbmenu",
+    "hint3": "בחרו TsVitch בתפריט hbmenu",
+    "hint4": "Optional: use the provided NSP forwarder (Put TsVitch.nro in /switch/TsVitch.nro)",
+    "hint_nsp": "Press  to install the NSP forwarder",
+    "hint_confirm": "Installing the NSP forwarder may cause a ban\nDo you confirm?",
+    "hint_right": "Images are from the Internet, copyright belongs to Nintendo Co., Ltd"
+  },
+  "home": {
+    "common": {
+      "part": "ערוץ:",
+      "recommend": "מומלץ",
+      "search": "חיפוש ערוץ",
+      "switch": "מעבר",
+      "refresh": "רענון",
+      "last": "הקודם",
+      "next": "הבא",
+      "filter": "סינון",
+      "save": "שמירה",
+      "min": "דקות",
+      "high": "גבוהה",
+      "medium": "בינונית",
+      "low": "נמוכה",
+      "no_login": "טרם התחברתם"
+    },
+    "live": {
+      "tab": "ערוצים",
+      "dialog": "ערוצים",
+      "default": "עיון בערוצים"
+    },
+    "rcmd": {
+      "tab": "עיון"
+    },
+    "hots": {
+      "tab": "פופולרי",
+      "t1": "פופולרי",
+      "t2": "דירוג",
+      "t3": "השבוע",
+      "t4": "היסטוריה"
+    },
+    "bangumi": {
+      "tab": "Bangumi"
+    },
+    "cinema": {
+      "tab": "קולנוע"
+    }
+  },
+  "dynamic": {
+    "detail": "פרטי פעילות",
+    "video": "וידאו",
+    "article": "פעילות"
+  },
+  "search": {
+    "tv": {
+      "hint": "חיפוש לפי מילות מפתח",
+      "clear": "ניקוי",
+      "delete": "מחיקה",
+      "search": "חיפוש",
+      "hots": "פופולרי",
+      "history": "היסטוריה",
+      "history_clear": "ניקוי הכול",
+      "history_delete": "מחיקה",
+      "suggest": "הצעות"
+    },
+    "order": {
+      "all": "הכול",
+      "click": "לחיצה",
+      "pubdate": "תאריך פרסום",
+      "dm": "Danmaku",
+      "stow": "מועדף"
+    },
+    "tab": "חיפוש",
+    "t0": "היסטוריה",
+    "t1": "פופולרי",
+    "t2": "וידאו",
+    "t3": "Bangumi",
+    "t4": "קולנוע"
+  },
+  "activity": {
+    "all": "כל הפעילויות",
+    "refresh": "רענון רשימה"
+  },
+  "mine": {
+    "login": {
+      "check": "בודק פרטי התחברות...",
+      "success": "ההתחברות הצליחה",
+      "refresh": "רענון",
+      "click": "לחצו להתחברות",
+      "logout": "Log out of the current account \n(the app will close)",
+      "scan": "סרקו קוד QR להתחברות",
+      "loading": "טוען קוד QR...",
+      "hint": "סרקו את קוד ה־QR באמצעות TsVitch",
+      "network_error": "שגיאת רשת, נסו שוב",
+      "qr_not_available": "קוד QR לא תקין, פתחו את החלונית מחדש",
+      "need_confirm": "ממתין לאישור",
+      "need_scan": "ממתין לסריקת קוד QR"
+    },
+    "later": "לצפייה בהמשך",
+    "history": "היסטוריה",
+    "collection": "מועדפים",
+    "subscription": "מינויים",
+    "anime": "אנימה",
+    "series": "סדרות",
+    "refresh_history": "רענון היסטוריה",
+    "refresh_collection": "רענון מועדפים",
+    "refresh_subscription": "רענון מינויים",
+    "refresh_later": "רענון לצפייה בהמשך",
+    "refresh_anime": "רענון אנימה",
+    "refresh_series": "רענון סדרות",
+    "coin": "מטבעות",
+    "following": "במעקב",
+    "follower": "עוקבים",
+    "activity": "פעילות",
+    "public": "ציבורי",
+    "private": "פרטי",
+    "num": " תכנים",
+    "pub": "נוצר בתאריך",
+    "creator": "יוצר",
+    "done": "הושלם",
+    "article": "פתיחה בדפדפן:"
+  },
+  "player": {
+    "intro": "מבוא",
+    "p": "חלקים",
+    "ugc_season": "רשימת ניגון",
+    "related": "תוכן קשור",
+    "series": "סדרות",
+    "recommend": "מומלץ",
+    "uploaded": "אחר",
+    "qr": "סרקו לצפייה או שיתוף",
+    "clipboard": "הועתק ללוח",
+    "comment": "תגובה",
+    "current": " צופים כעת",
+    "share": "שיתוף",
+    "rights": "הפצה חוזרת אסורה",
+    "fs": "מסך מלא",
+    "quality": "איכות",
+    "speed": "מהירות",
+    "replay": "ניגון חוזר",
+    "current_speed": "מהירות נוכחית: {0}",
+    "not_follow": "להפסיק מעקב?",
+    "coin": {
+      "title": "מטבעות",
+      "hint": "Choose the number of coins",
+      "like": "Like at the same time",
+      "own": "You can't give coins to yourself",
+      "run_out": "The number of coins for this video is exhausted",
+      "exp": "Experience + {}（Today {}/50）",
+      "exp_full": "Maximum daily experience reached (50/50)  ！",
+      "pcs": "{} pieces"
+    },
+    "season_part": {
+      "ascend": "סדר עולה",
+      "descend": "סדר יורד"
+    },
+    "comment_sort": {
+      "sort_top": "מיון לפי פופולריות",
+      "sort_new": "מיון מהחדש לישן",
+      "top": "תגובות מובילות",
+      "new": "תגובות אחרונות"
+    },
+    "collection": {
+      "type": "מועדפים",
+      "title": "בחירת מועדפים"
+    },
+    "setting": {
+      "subtitle": {
+        "header": "כתוביות"
+      },
+      "equalizer": {
+        "header": "איזון תמונה",
+        "brightness": "בהירות",
+        "contrast": "ניגודיות",
+        "saturation": "רוויה",
+        "gamma": "גמא",
+        "hue": "גוון",
+        "reset": "איפוס"
+      },
+      "common": {
+        "header": "כללי",
+        "mirror": "תמונת ראי",
+        "highlight": "הצגת נקודות עניין תמיד",
+        "skip_opening_credits": "דילוג על פתיח",
+        "skip_hint1": "Automatically skip the opening from the next video",
+        "skip_hint2": "Disable skip opening from the next video",
+        "skip_hint3": "Use custom opening from the next video",
+        "skip_hint4": "Disable custom opening from the next video",
+        "wiki": "Access our wiki to learn how shaders work"
+      },
+      "season": {
+        "aspect": "יחס תמונה מותאם",
+        "clip": "פתיח מותאם",
+        "clip_start": "משך פתיח",
+        "clip_end": "משך סיום",
+        "unit": "יחידה: שניות"
+      },
+      "aspect": {
+        "header": "יחס תמונה",
+        "crop": "חיתוך",
+        "stretch": "מתיחה",
+        "auto": "אוטומטי"
+      },
+      "shader": {
+        "header": "מסנן תמונה"
+      }
+    },
+    "cast": {
+      "header": "DLNA",
+      "device": "מכשירים",
+      "request_url": "מבקש קישור לווידאו...",
+      "cast_to_renderer": "מתחבר לנגן מרוחק...",
+      "casting": "משדר...",
+      "cancel": "ביטול שידור וידאו",
+      "err_connect": "לא ניתן להתחבר לנגן DLNA",
+      "err_url": "לא ניתן לקבל קישור לווידאו",
+      "countdown": "זמן שנותר לחיפוש",
+      "live_download_error": "הורדה לא זמינה",
+      "live_download_error_desc": "Cannot download a live stream in progress.\nDownload is only available for on-demand content."
+    },
+    "danmaku": {
+      "header": "Danmaku settings",
+      "send": {
+        "action": "Send",
+        "hint": "כתבו משהו נחמד"
+      },
+      "performance": {
+        "header": "Performance",
+        "render": "Rendering quality"
+      },
+      "filter": {
+        "header": "Danmaku filter",
+        "mask": "Smart mask",
+        "top": "Top",
+        "scroll": "Scroll",
+        "bottom": "Bottom",
+        "color": "Color",
+        "advanced": "Advanced",
+        "level": "Filter level",
+        "level_n": "Level {}"
+      },
+      "style": {
+        "header": "Danmaku style",
+        "font": "Border style",
+        "font_stroke": "Border",
+        "font_incline": "Inclined",
+        "font_shadow": "Shadow",
+        "font_pure": "Pure",
+        "area": "Display area",
+        "area_1_4": "1/4 Screen",
+        "area_2_4": "1/2 Screen",
+        "area_3_4": "3/4 Screen",
+        "area_4_4": "Full screen",
+        "alpha": "Alpha",
+        "fontsize": "Font size",
+        "line_height": "Line height",
+        "speed": "מהירות",
+        "speed_slow_plus": "Extremely slow",
+        "speed_slow": "Slow",
+        "speed_fast_plus": "Extremely fast",
+        "speed_fast": "Fast",
+        "speed_moderate": "Moderate"
+      }
+    },
+    "single_comment": {
+      "detail": "פרטים",
+      "hint": "כתבו משהו נחמד",
+      "related": "{} total replies",
+      "end": "אין תגובות נוספות.",
+      "delete": "After deleting the comment, all replies under the comment will be deleted\n\nDo you want to continue?"
+    }
+  },
+  "dialog": {
+    "not_supported": "לא נתמך",
+    "quit_hint": "יוצא מהיישום..."
+  }
+}

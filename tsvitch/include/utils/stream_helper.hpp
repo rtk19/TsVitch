@@ -19,9 +19,11 @@ inline bool isLiveStream(const std::string& url, const std::string& title) {
     std::string titleLower = title;
     std::transform(urlLower.begin(), urlLower.end(), urlLower.begin(), ::tolower);
     std::transform(titleLower.begin(), titleLower.end(), titleLower.begin(), ::tolower);
-    
+
+    if (urlLower.find("/movie/") != std::string::npos || urlLower.find("/series/") != std::string::npos) return false;
+
     // Indicatori di live stream negli URL e titoli
-    if (urlLower.find("live") != std::string::npos || 
+    if (urlLower.find("live") != std::string::npos ||
         urlLower.find("stream") != std::string::npos ||
         urlLower.find(".m3u8") != std::string::npos ||
         urlLower.find(".ts") != std::string::npos ||
@@ -29,7 +31,7 @@ inline bool isLiveStream(const std::string& url, const std::string& title) {
         titleLower.find("diretta") != std::string::npos) {
         return true;
     }
-    
+
     return false;
 }
 
@@ -40,7 +42,7 @@ inline void showLiveStreamDownloadError() {
     // Dialog accetta solo una stringa, quindi concateniamo titolo e descrizione
     std::string message = brls::getStr("tsvitch/cast/live_download_error") + "\n\n" +
                           brls::getStr("tsvitch/cast/live_download_error_desc");
-    
+
     brls::Dialog* dialog = new brls::Dialog(message);
     dialog->addButton(brls::getStr("brls/hints/ok"), []() {});
     dialog->open();

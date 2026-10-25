@@ -1,7 +1,7 @@
 {
   "title": "TsVitch",
-  "github": "https://github.com/giovannimirulla/TsVitch",
-  "github_release": "https://github.com/giovannimirulla/TsVitch/releases/latest",
+  "github": "https://github.com/rtk19/TsVitch",
+  "github_release": "https://github.com/rtk19/TsVitch/releases/latest",
   "setting": {
     "quit_hint": "Stai per uscire dall'applicazione. Le impostazioni avranno effetto dopo il prossimo avvio",
     "app": {

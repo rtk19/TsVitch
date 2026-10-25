@@ -1,7 +1,9 @@
+#include <borealis/core/i18n.hpp>
 #include <borealis/core/thread.hpp>
 #include <borealis/views/dialog.hpp>
 
 #include "activity/live_player_activity.hpp"
+#include "utils/iptv_browser.hpp"
 #include "utils/number_helper.hpp"
 #include "core/DownloadManager.hpp"
 #include "core/DownloadProgressManager.hpp"
@@ -71,6 +73,11 @@ void LiveActivity::onContentAvailable() {
         this->startDownload();
         return true;
     });
+
+    this->video->registerAction(brls::getStr("iptv/s24"), brls::BUTTON_NAV_UP, [this](brls::View*) {
+        if (!this->isAd && !this->video->isOSDLock()) tsvitch::showProgrammeInfo(this->liveData);
+        return true;
+    }, true);
 
     //Button R go to next channel
     this->video->registerAction("hints/next_channel"_i18n, brls::BUTTON_RB, [this](...) {
@@ -170,7 +177,7 @@ void LiveActivity::startAd(std::string adUrl) {
 
     // Quando l'annuncio finisce normalmente, passa alla live
     this->video->setOnEndCallback([this]() { this->startLive(); });
-    
+
     // Se l'annuncio fallisce nel caricamento, passa comunque alla live
     // (Rimuoviamo il comportamento di chiusura dell'app per gli errori durante gli annunci)
     if (!mpvEventRegistered) {
@@ -186,14 +193,14 @@ void LiveActivity::startAd(std::string adUrl) {
 
 void LiveActivity::startLive() {
     this->isAd = false;
-    
+
     // Rileva il tipo di contenuto PRIMA di caricare l'URL
     // Questo imposta correttamente isLiveMode per eventuali errori di caricamento
     this->detectContentType();
-    
+
     // Riabilita il seek quando non è più un annuncio
     this->video->disableProgressSliderSeek(false);
-    
+
     this->video->setCustomToggleAction([this]() {
         if (MPVCore::instance().isStopped()) {
             this->onLiveData(this->liveData.url);
@@ -212,16 +219,17 @@ void LiveActivity::startLive() {
             });
         }
     });
-    
+
     this->video->setUrl(liveData.url);
-    
+
     // Registra un listener per l'evento MPV_LOADED per ri-verificare il tipo con la durata effettiva
     // e per ripristinare la posizione salvata
+    if (mpvEventRegistered) MPVCore::instance().getEvent()->unsubscribe(this->tl_event_id);
     this->tl_event_id = MPVCore::instance().getEvent()->subscribe([this](MpvEventEnum event) {
         if (event == MPV_LOADED) {
             // Ri-verifica il tipo di contenuto con la durata effettiva da MPV
             this->detectContentType();
-            
+
             // Ripristina la posizione salvata solo per video on-demand (non per live stream)
             if (!tsvitch::isLiveStream(liveData.url, liveData.title)) {
                 int64_t savedPosition = tsvitch::PlaybackPositionManager::getPosition(liveData.url);
@@ -239,14 +247,14 @@ void LiveActivity::detectContentType() {
     // Prima fase: analisi basata su URL e titolo (disponibile sempre)
     std::string url = liveData.url;
     std::string title = liveData.title;
-    
+
     // Converti in lowercase per il confronto
     std::transform(url.begin(), url.end(), url.begin(), ::tolower);
     std::transform(title.begin(), title.end(), title.begin(), ::tolower);
-    
+
     // Determina il tipo basandosi su URL e titolo
     bool isLiveStream = true; // Default: assume live stream
-    
+
     // Indicatori di video on-demand negli URL
     if (url.find(".mp4") != std::string::npos ||
         url.find(".mkv") != std::string::npos ||
@@ -255,7 +263,7 @@ void LiveActivity::detectContentType() {
         isLiveStream = false;
     }
     // Indicatori di live stream negli URL e titoli
-    else if (url.find("live") != std::string::npos || 
+    else if (url.find("live") != std::string::npos ||
              url.find("stream") != std::string::npos ||
              url.find(".m3u8") != std::string::npos ||
              url.find(".ts") != std::string::npos ||
@@ -263,11 +271,11 @@ void LiveActivity::detectContentType() {
              title.find("diretta") != std::string::npos) {
         isLiveStream = true;
     }
-    
+
     // Seconda fase: verifica con durata MPV (se disponibile)
     double duration = MPVCore::instance().duration;
     brls::Logger::debug("LiveActivity: detectContentType - duration: {}", duration);
-    
+
     // Se MPV è già caricato, usa la durata per verificare/correggere la detection
     if (duration > 0) {
         // Se ha durata definita, è sicuramente un video
@@ -279,9 +287,13 @@ void LiveActivity::detectContentType() {
         brls::Logger::debug("LiveActivity: MPV duration 0 confirms LIVE mode");
     }
     // Altrimenti mantiene la detection basata su URL/titolo fatta prima
-    
+
     brls::Logger::debug("LiveActivity: Content detected as: {}", isLiveStream ? "LIVE STREAM" : "VIDEO WITH DURATION");
-    
+
+    // Xtream URLs provide an authoritative type, even before MPV loads the new file.
+    if (url.find("/movie/") != std::string::npos || url.find("/series/") != std::string::npos) isLiveStream = false;
+    else if (url.find("/live/") != std::string::npos) isLiveStream = true;
+
     // Configura l'interfaccia in base al tipo di contenuto
     if (isLiveStream) {
         this->video->setLiveMode();
@@ -299,39 +311,39 @@ void LiveActivity::startDownload() {
         brls::Logger::debug("LiveActivity: Cannot download ads");
         return;
     }
-    
+
     if (hasActiveDownload) {
         brls::Logger::debug("LiveActivity: Download already in progress");
         return;
     }
-    
+
     // Controlla se è una live stream in corso
     if (tsvitch::isLiveStream(this->liveData.url, this->liveData.title)) {
         brls::Logger::warning("LiveActivity: Cannot download live streams");
         tsvitch::showLiveStreamDownloadError();
         return;
     }
-    
+
     // Debug: stampa i dati del download
-    brls::Logger::debug("LiveActivity: Starting download for title='{}', url='{}'", 
+    brls::Logger::debug("LiveActivity: Starting download for title='{}', url='{}'",
                        this->liveData.title, this->liveData.url);
-    
+
     // Verifica che l'URL sia valido
     if (this->liveData.url.empty()) {
         brls::Logger::error("LiveActivity: Cannot download - URL is empty");
         return;
     }
-    
+
     // Mostra l'overlay del progresso globale
     tsvitch::DownloadProgressManager::getInstance()->showDownloadProgress(
-        "live_" + this->liveData.title, 
-        this->liveData.title, 
+        "live_" + this->liveData.title,
+        this->liveData.title,
         this->liveData.url
     );
-    
+
     // Avvia il download del video corrente con callback
     currentDownloadId = DownloadManager::instance().startDownload(
-        this->liveData.title, 
+        this->liveData.title,
         this->liveData.url,
         this->liveData.logo,  // Usa il logo del canale come immagine
         [this](const std::string& downloadId, float progress, size_t downloaded, size_t total) {
@@ -339,11 +351,11 @@ void LiveActivity::startDownload() {
             if (!hasActiveDownload) {
                 return;  // Download annullato o completato
             }
-            
+
             try {
                 std::string progressText;
                 std::string statusText = "Download in corso...";
-                
+
                 if (total > 0) {
                     std::string downloadedStr = formatFileSize(downloaded);
                     std::string totalStr = formatFileSize(total);
@@ -351,15 +363,15 @@ void LiveActivity::startDownload() {
                 } else {
                     progressText = fmt::format("{:.1f}%", progress);
                 }
-                
+
                 // Aggiorna l'overlay globale
                 tsvitch::DownloadProgressManager::getInstance()->updateProgress(
-                    "live_" + this->liveData.title, 
-                    progress, 
-                    statusText, 
+                    "live_" + this->liveData.title,
+                    progress,
+                    statusText,
                     progressText
                 );
-                
+
             } catch (const std::exception& e) {
                 brls::Logger::error("Error in download progress callback: {}", e.what());
                 hasActiveDownload = false;
@@ -368,28 +380,28 @@ void LiveActivity::startDownload() {
         [this](const std::string& downloadId, const std::string& filePath) {
             // Callback di completamento
             brls::Logger::info("Download completed: {}", downloadId);
-            
+
             hasActiveDownload = false;
-            
+
             try {
                 // Aggiorna l'overlay globale con stato di completamento
                 tsvitch::DownloadProgressManager::getInstance()->updateProgress(
-                    "live_" + this->liveData.title, 
-                    100.0f, 
-                    "Download completato!", 
+                    "live_" + this->liveData.title,
+                    100.0f,
+                    "Download completato!",
                     "100%"
                 );
-                
+
                 // Nascondi l'overlay dopo 2 secondi
                 brls::delay(2000, [this]() {
                     tsvitch::DownloadProgressManager::getInstance()->hideDownloadProgress("live_" + this->liveData.title);
                 });
-                
+
                 // Mostra notifica di successo
                 std::string message = fmt::format("Download di \"{}\" completato", this->liveData.title);
                 brls::sync([message]() {
                     brls::Dialog* dialog = new brls::Dialog(message);
-                    dialog->addButton("OK", []() {});
+                    dialog->addButton(brls::getStr("iptv/s10"), []() {});
                     dialog->open();
                 });
             } catch (const std::exception& e) {
@@ -399,28 +411,28 @@ void LiveActivity::startDownload() {
         [this](const std::string& downloadId, const std::string& error) {
             // Callback di errore
             brls::Logger::error("Download failed: {} - {}", downloadId, error);
-            
+
             hasActiveDownload = false;
-            
+
             try {
                 // Aggiorna l'overlay globale con stato di errore
                 tsvitch::DownloadProgressManager::getInstance()->updateProgress(
-                    "live_" + this->liveData.title, 
-                    0.0f, 
-                    "Errore nel download", 
+                    "live_" + this->liveData.title,
+                    0.0f,
+                    "Errore nel download",
                     "Fallito"
                 );
-                
+
                 // Nascondi l'overlay dopo 3 secondi
                 brls::delay(3000, [this]() {
                     tsvitch::DownloadProgressManager::getInstance()->hideDownloadProgress("live_" + this->liveData.title);
                 });
-                
+
                 // Mostra notifica di errore
                 std::string message = fmt::format("Errore nel download di \"{}\": {}", this->liveData.title, error);
                 brls::sync([message]() {
                     brls::Dialog* dialog = new brls::Dialog(message);
-                    dialog->addButton("OK", []() {});
+                    dialog->addButton(brls::getStr("iptv/s10"), []() {});
                     dialog->open();
                 });
             } catch (const std::exception& e) {
@@ -428,16 +440,16 @@ void LiveActivity::startDownload() {
             }
         }
     );
-    
+
     if (!currentDownloadId.empty()) {
         hasActiveDownload = true;
         brls::Logger::info("LiveActivity: Started download {} for {}", currentDownloadId, this->liveData.title);
     } else {
         // Download fallito immediatamente
         hasActiveDownload = false;
-        
+
         brls::Dialog* dialog = new brls::Dialog("Impossibile avviare il download");
-        dialog->addButton("OK", []() {});
+        dialog->addButton(brls::getStr("iptv/s10"), []() {});
         dialog->open();
     }
 }
@@ -469,6 +481,7 @@ void LiveActivity::retryRequestData() {
 }
 
 void LiveActivity::getAdUrlFromServer(std::function<void(const std::string&)> callback) {
+    if (std::string(SERVER_URL_VALUE).empty()) { callback(""); return; }
     CLIENT::get_ad(
         [callback](const std::string& adUrl, int statusCode) {
             if (statusCode == 200 && !adUrl.empty()) {
@@ -489,12 +502,12 @@ std::string LiveActivity::formatFileSize(size_t bytes) {
     const char* suffixes[] = {"B", "KB", "MB", "GB"};
     int suffixIndex = 0;
     double size = static_cast<double>(bytes);
-    
+
     while (size >= 1024 && suffixIndex < 3) {
         size /= 1024;
         suffixIndex++;
     }
-    
+
     if (suffixIndex == 0) {
         return fmt::format("{} {}", static_cast<int>(size), suffixes[suffixIndex]);
     } else {
@@ -504,18 +517,18 @@ std::string LiveActivity::formatFileSize(size_t bytes) {
 
 LiveActivity::~LiveActivity() {
     brls::Logger::debug("LiveActivity: delete");
-    
+
     // Salva la posizione di riproduzione prima di uscire (solo per video on-demand)
     if (!tsvitch::isLiveStream(liveData.url, liveData.title)) {
         int64_t currentPosition = MPVCore::instance().playback_time;
         int64_t totalDuration = MPVCore::instance().duration;
-        
+
         if (currentPosition > 0 && totalDuration > 0) {
             tsvitch::PlaybackPositionManager::savePosition(liveData.url, currentPosition, totalDuration);
             brls::Logger::info("LiveActivity: Saved playback position {} / {}", currentPosition, totalDuration);
         }
     }
-    
+
     // Cancella download attivo se presente
     if (hasActiveDownload && !currentDownloadId.empty()) {
         brls::Logger::debug("LiveActivity: Cancelling active download {}", currentDownloadId);
@@ -523,14 +536,14 @@ LiveActivity::~LiveActivity() {
         hasActiveDownload = false;
         currentDownloadId.clear();
     }
-    
+
     if (this->video) {
         this->video->setOnEndCallback(nullptr);  // Annulla la callback per evitare crash
         this->video->stop();
     }
     brls::cancelDelay(toggleDelayIter);
     brls::cancelDelay(errorDelayIter);
-    
+
     // Pulisci gli eventi in modo sicuro per evitare callback dopo la distruzione
     try {
         if (mpvEventRegistered) {
@@ -542,7 +555,7 @@ LiveActivity::~LiveActivity() {
     } catch (...) {
         brls::Logger::warning("LiveActivity: Unknown error unsubscribing MPV event");
     }
-    
+
     try {
         if (customEventRegistered) {
             EventHelper::instance().getCustomEvent()->unsubscribe(this->event_id);
@@ -553,6 +566,6 @@ LiveActivity::~LiveActivity() {
     } catch (...) {
         brls::Logger::warning("LiveActivity: Unknown error unsubscribing custom event");
     }
-    
+
     if (onCloseCallback) onCloseCallback();
 }

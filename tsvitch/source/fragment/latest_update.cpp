@@ -1,3 +1,4 @@
+#include <borealis/core/i18n.hpp>
 
 
 #include <pystring.h>
@@ -7,6 +8,8 @@
 #include <borealis/views/image.hpp>
 
 #include "fragment/latest_update.hpp"
+#include "utils/app_updater.hpp"
+#include <borealis/views/cells/cell_detail.hpp>
 #include "analytics.h"
 #include "utils/config_helper.hpp"
 #include "utils/image_helper.hpp"
@@ -137,6 +140,11 @@ LatestUpdate::LatestUpdate(const ReleaseNote& info) {
             textbox->addView(line);
         }
     }
+
+    auto* install = new brls::DetailCell();
+    install->setText(brls::getStr("iptv/s36"));
+    install->registerClickAction([](brls::View*) { tsvitch::installLatestUpdate(); return true; });
+    textbox->addView(install);
 
     GA("show_update_dialog")
 }

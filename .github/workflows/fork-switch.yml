@@ -1,0 +1,49 @@
+name: Fork Switch release
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: sudo apt-get update && sudo apt-get install -y libfribidi0
+      - run: bash tests/run.sh
+  switch:
+    needs: verify
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkita64@sha256:1fc388c3a0d34bd2045a6dadcb1020e069d5f876a187fd705de14b4440c00282
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - run: bash scripts/build_switch_fork.sh
+      - name: Package
+        run: |
+          mkdir -p dist/switch/TsVitch
+          cp cmake-build-switch/TsVitch.nro dist/TsVitch.nro
+          cp dist/TsVitch.nro dist/switch/TsVitch/TsVitch.nro
+          cp RELEASE-NOTES.md dist/
+          cd dist
+          zip -r TsVitch-Switch.zip switch RELEASE-NOTES.md
+          sha256sum TsVitch.nro TsVitch-Switch.zip > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TsVitch-Switch
+          path: dist/*
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/TsVitch.nro
+            dist/TsVitch-Switch.zip
+            dist/SHA256SUMS
+          body_path: RELEASE-NOTES.md
+          fail_on_unmatched_files: true

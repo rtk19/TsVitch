@@ -8,7 +8,7 @@
 #include <borealis/views/applet_frame.hpp>
 #include <borealis/views/dialog.hpp>
 #include <pystring.h>
-#include <cmath> 
+#include <cmath>
 
 #include "utils/number_helper.hpp"
 #include "utils/config_helper.hpp"
@@ -1013,6 +1013,8 @@ void VideoView::registerMpvEvent() {
                 this->setProgress((float)mpvCore->playback_time / getRealDuration());
                 break;
             case MpvEventEnum::UPDATE_PROGRESS:
+                // Advancing playback is authoritative even if a backend misses a restart event.
+                if (!mpvCore->video_seeking && mpvCore->isPlaying()) this->hideLoading();
                 this->setPlaybackTime(tsvitch::sec2Time(this->mpvCore->video_progress));
                 this->setProgress((float)mpvCore->playback_time / getRealDuration());
                 break;

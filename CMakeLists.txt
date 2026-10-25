@@ -29,20 +29,11 @@ option(DEBUG_SANITIZER "Turn on sanitizers (only available in debug build)" OFF)
 # Google Analytics
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/GoogleAnalytics.cmake)
 
-# Server URL
-option(SERVER_URL "URL del server" "")
-if (NOT DEFINED SERVER_URL OR "${SERVER_URL}" STREQUAL "")
-    message(FATAL_ERROR "SERVER_URL not defined")
-else()
-    list(APPEND APP_PLATFORM_OPTION -DSERVER_URL="${SERVER_URL}")
-endif()
-
-# Server Token
-option(SERVER_TOKEN "Token del server" "")
-if (NOT DEFINED SERVER_TOKEN OR "${SERVER_TOKEN}" STREQUAL "")
-    message(FATAL_ERROR "SERVER_TOKEN not defined")
-else()
-    list(APPEND APP_PLATFORM_OPTION -DSERVER_TOKEN="${SERVER_TOKEN}")
+# Optional upstream registration/advertising service. Provider playback works independently.
+set(SERVER_URL "" CACHE STRING "Optional registration service URL")
+set(SERVER_TOKEN "" CACHE STRING "Optional registration service token")
+if (SERVER_URL AND SERVER_TOKEN)
+    list(APPEND APP_PLATFORM_OPTION -DSERVER_URL="${SERVER_URL}" -DSERVER_TOKEN="${SERVER_TOKEN}")
 endif()
 
 # Default M3U8 URL
@@ -101,8 +92,8 @@ add_definitions(-DFONS_HASH_LUT_SIZE=4096)
 # Project Info
 project(TsVitch)
 set(VERSION_MAJOR "0")
-set(VERSION_MINOR "3")
-set(VERSION_REVISION "1")
+set(VERSION_MINOR "4")
+set(VERSION_REVISION "0")
 if (NOT VERSION_BUILD)
     set(VERSION_BUILD "0")
 endif ()
@@ -219,6 +210,7 @@ endif ()
 
 # build borealis qrcode and other third party libraries
 add_subdirectory(library)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Hebrew.cmake)
 
 # Main Target
 program_target(${PROJECT_NAME} "${MAIN_SRC}")

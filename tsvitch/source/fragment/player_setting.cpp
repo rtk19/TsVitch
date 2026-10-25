@@ -1,3 +1,4 @@
+#include <borealis/core/i18n.hpp>
 
 
 #include <borealis/core/touch/tap_gesture.hpp>
@@ -5,6 +6,7 @@
 #include <borealis/views/cells/cell_bool.hpp>
 #include <borealis/views/cells/cell_slider.hpp>
 #include <borealis/views/cells/cell_input.hpp>
+#include <borealis/views/cells/cell_detail.hpp>
 
 #include "utils/config_helper.hpp"
 #include "utils/shader_helper.hpp"
@@ -55,6 +57,37 @@ brls::View* PlayerSetting::getDefaultFocus() { return this->settings->getDefault
 
 void PlayerSetting::setupCommonSetting() {
     auto locale = brls::Application::getLocale();
+    auto* trackSettings = dynamic_cast<brls::Box*>(btnSleep->getParent());
+    if (trackSettings) {
+        for (const auto& type : {std::string("audio"), std::string("sub")}) {
+            auto* cell = new brls::DetailCell();
+            cell->setText(type == "audio" ? brls::getStr("iptv/s11") : brls::getStr("iptv/s12"));
+            cell->registerClickAction([type](brls::View*) {
+                auto& core = MPVCore::instance();
+                std::vector<std::string> labels = {brls::getStr("iptv/s13"), brls::getStr("iptv/s14")};
+                std::vector<std::string> ids = {"auto", "no"};
+                const int64_t count = core.getInt("track-list/count");
+                for (int64_t i = 0; i < count; ++i) {
+                    const auto prefix = "track-list/" + std::to_string(i) + "/";
+                    if (core.getString(prefix + "type") != type) continue;
+                    const auto id = core.getString(prefix + "id");
+                    auto label = core.getString(prefix + "lang");
+                    const auto title = core.getString(prefix + "title");
+                    if (!title.empty()) label += (label.empty() ? "" : " - ") + title;
+                    if (label.empty()) label = "Track " + id;
+                    labels.push_back(label);
+                    ids.push_back(id);
+                }
+                BaseDropdown::text(type == "audio" ? brls::getStr("iptv/s11") : brls::getStr("iptv/s12"), labels,
+                    [type, ids](int index) {
+                        if (index >= 0 && static_cast<size_t>(index) < ids.size())
+                            MPVCore::instance().command_async("set", type == "audio" ? "aid" : "sid", ids[index]);
+                    }, -1);
+                return true;
+            });
+            trackSettings->addView(cell);
+        }
+    }
 
     btnMirror->init("tsvitch/player/setting/common/mirror"_i18n, MPVCore::VIDEO_MIRROR, [](bool value) {
         MPVCore::instance().setMirror(!MPVCore::VIDEO_MIRROR);

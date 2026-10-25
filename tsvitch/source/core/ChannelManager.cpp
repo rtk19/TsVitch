@@ -11,7 +11,7 @@ using json = nlohmann::json;
 
 ChannelManager::ChannelManager(const std::filesystem::path& dataDir) : 
     file_{dataDir / "channels.json"},
-    binaryFile_{dataDir / "channels.bin"},
+    binaryFile_{dataDir / "channels-v2.bin"},
     timestampFile_{dataDir / "channels_timestamp.txt"} {}
 
 ChannelManager* ChannelManager::get() {
@@ -195,11 +195,10 @@ void ChannelManager::writeString(std::ofstream& out, const std::string& str) con
 std::string ChannelManager::readString(std::ifstream& in) const {
     uint32_t length = 0;
     in.read(reinterpret_cast<char*>(&length), sizeof(length));
-    if (length == 0) {
-        return "";
-    }
+    if (!in || length > 1024 * 1024) throw std::runtime_error("Invalid cached string length");
+    if (length == 0) return "";
     std::string str(length, '\0');
-    in.read(&str[0], length);
+    if (!in.read(&str[0], length)) throw std::runtime_error("Truncated channel cache");
     return str;
 }
 
@@ -220,7 +219,7 @@ void ChannelManager::saveBinary(const tsvitch::LiveM3u8ListResult& channels) con
         
         // Buffer per accumulate dati prima di scrivere (riduce syscall da 3.6M a ~60k)
         std::vector<char> buffer;
-        buffer.reserve(300 * 1024 * 1024); // Pre-alloca 300MB per evitare reallocazioni
+        buffer.reserve(1024 * 1024); // Start small; grow only as needed for each write batch
         
         // Scrivi ogni canale nel buffer
         for (size_t i = 0; i < channels.size(); ++i) {
@@ -242,6 +241,8 @@ void ChannelManager::saveBinary(const tsvitch::LiveM3u8ListResult& channels) con
             appendString(channel.logo);
             appendString(channel.groupTitle);
             appendString(channel.url);
+            appendString(channel.description);
+            appendString(channel.epgId);
             
             // Scrivi il buffer al file ogni 5000 canali per non usare troppa RAM
             if ((i + 1) % 5000 == 0) {
@@ -299,6 +300,8 @@ tsvitch::LiveM3u8ListResult ChannelManager::loadBinary() const {
             channel.logo = readString(in);
             channel.groupTitle = readString(in);
             channel.url = readString(in);
+            channel.description = readString(in);
+            channel.epgId = readString(in);
             channels.push_back(std::move(channel));
         }
         

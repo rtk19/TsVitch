@@ -59,7 +59,7 @@ enum class SettingItem {
     OPENCC_ON,
     CUSTOM_UPDATE_API,
     IMAGE_REQUEST_THREADS,
-    
+
     GAMEPAD_VIBRATION,
     KEYMAP,
     HOME_WINDOW_STATE,
@@ -79,6 +79,7 @@ enum class SettingItem {
     UP_FILTER,
 
     // IPTV Mode Selection
+    XMLTV_URL,
     IPTV_MODE,  // 0 = M3U8, 1 = Xtream
 
     // Xtream Codes IPTV Settings
@@ -91,7 +92,7 @@ enum class SettingItem {
 };
 
 class APPVersion : public brls::Singleton<APPVersion> {
-    inline static std::string RELEASE_API = "https://api.github.com/repos/giovannimirulla/TsVitch/releases/latest";
+    inline static std::string RELEASE_API = "https://api.github.com/repos/rtk19/TsVitch/releases/latest";
 
 public:
     int major, minor, revision;
