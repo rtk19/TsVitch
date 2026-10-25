@@ -8,7 +8,7 @@
         <brls:Box
                 id="video/card/pic_box"
                 width="100%"
-                height="68%">
+                height="60%">
 
 
                 <brls:Image
@@ -45,6 +45,7 @@
                         height="30"
                         width="30"
                         SVG="@res/svg/ico-favorites-activate.svg" />
+        <brls:Label id="video/card/archive" positionType="absolute" positionTop="8" positionRight="8" fontSize="14" backgroundColor="@theme/color/yellow_1" textColor="@theme/font/yellow_1" padding="4"/>
         <brls:Box
                 margin="10"
                 axis="column">
@@ -58,6 +59,7 @@
                         width="100%"
                         height="30" />
 
+                <brls:Label id="video/card/label/programme" fontSize="14" height="20" width="100%"/>
                 <brls:Box
                         grow="1"
                         width="100%"

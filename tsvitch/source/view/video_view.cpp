@@ -75,7 +75,8 @@ VideoView::VideoView() {
             osdSlider->getProgressSetEvent()->subscribe([this](float progress) {
                 brls::Logger::verbose("Set progress: {}", progress);
                 this->showOSD(true);
-                if (real_duration > 0) {
+                if (archiveSeek) { archiveSeek(getRealDuration()*progress);
+                } else if (real_duration > 0) {
                     mpvCore->seek((float)real_duration * progress);
                 } else {
                     mpvCore->seekPercent(progress);
@@ -338,7 +339,7 @@ VideoView::VideoView() {
         } else if (event == VideoView::REAL_DURATION) {
             this->real_duration = *(int*)data;
             this->setDuration(tsvitch::sec2Time(real_duration));
-            this->setProgress((float)mpvCore->playback_time / (float)real_duration);
+            this->setProgress((float)playbackPosition() / (float)real_duration);
         } else if (event == VideoView::LAST_TIME) {
             if (*(int64_t*)data == VideoView::POSITION_DISCARD)
                 this->setLastPlayedPosition(VideoView::POSITION_DISCARD);
@@ -391,11 +392,11 @@ void VideoView::requestSeeking(int seek, int delay) {
         is_seeking    = false;
         return;
     }
-    double progress = (this->mpvCore->playback_time + seek) / getRealDuration();
+    double progress = (this->playbackPosition() + seek) / getRealDuration();
 
     if (progress < 0) {
         progress = 0;
-        seek     = (int64_t)this->mpvCore->playback_time * -1;
+        seek     = (int64_t)this->playbackPosition() * -1;
     } else if (progress > 1) {
         progress = 1;
         seek     = getRealDuration();
@@ -416,7 +417,7 @@ void VideoView::requestSeeking(int seek, int delay) {
         seeking_range = 0;
         is_seeking    = false;
         if (seek == 0) return;
-        mpvCore->seekRelative(seek);
+        if (archiveSeek) archiveSeek(playbackPosition()+seek); else mpvCore->seekRelative(seek);
     } else {
         is_seeking = true;
         ASYNC_RETAIN
@@ -426,7 +427,7 @@ void VideoView::requestSeeking(int seek, int delay) {
             seeking_range = 0;
             is_seeking    = false;
             if (seek == 0) return;
-            mpvCore->seekRelative(seek);
+            if (archiveSeek) archiveSeek(playbackPosition()+seek); else mpvCore->seekRelative(seek);
         });
     }
 }
@@ -457,7 +458,7 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float width, float height
 
     if (BOTTOM_BAR && showBottomLineSetting) {
         bottomBarColor.a = alpha;
-        float progress   = mpvCore->playback_time / getRealDuration();
+        float progress   = playbackPosition() / getRealDuration();
         progress         = progress > 1.0f ? 1.0f : progress;
         nvgFillColor(vg, bottomBarColor);
         nvgBeginPath(vg);
@@ -915,6 +916,7 @@ void VideoView::setFullScreen(bool fs) {
         video->setHideHighlight(true);
         video->showReplay    = showReplay;
         video->real_duration = real_duration;
+        video->setArchiveTimeline(archiveDuration,archiveOffset,archiveSeek);
         video->setLastPlayedPosition(lastPlayedPosition);
         video->osdSlider->setClipPoint(osdSlider->getClipPoint());
         video->refreshToggleIcon();
@@ -998,7 +1000,7 @@ void VideoView::registerMpvEvent() {
                 break;
             }
             case MpvEventEnum::MPV_LOADED:
-                this->setPlaybackTime(tsvitch::sec2Time(this->mpvCore->video_progress));
+                this->setPlaybackTime(tsvitch::sec2Time(this->playbackPosition()));
                 if (lastPlayedPosition <= 0) break;
                 if (abs(getRealDuration() - lastPlayedPosition) <= 5) {
                     mpvCore->seek(0);
@@ -1010,13 +1012,13 @@ void VideoView::registerMpvEvent() {
                 break;
             case MpvEventEnum::UPDATE_DURATION:
                 this->setDuration(tsvitch::sec2Time(getRealDuration()));
-                this->setProgress((float)mpvCore->playback_time / getRealDuration());
+                this->setProgress((float)playbackPosition() / getRealDuration());
                 break;
             case MpvEventEnum::UPDATE_PROGRESS:
                 // Advancing playback is authoritative even if a backend misses a restart event.
                 if (!mpvCore->video_seeking && mpvCore->isPlaying()) this->hideLoading();
-                this->setPlaybackTime(tsvitch::sec2Time(this->mpvCore->video_progress));
-                this->setProgress((float)mpvCore->playback_time / getRealDuration());
+                this->setPlaybackTime(tsvitch::sec2Time(this->playbackPosition()));
+                this->setProgress((float)playbackPosition() / getRealDuration());
                 break;
             case MpvEventEnum::END_OF_FILE:
 
@@ -1085,6 +1087,15 @@ void VideoView::onChildFocusGained(View* directChild, View* focusedView) {
     brls::Application::giveFocus(this);
 }
 
-float VideoView::getRealDuration() { return real_duration > 0 ? (float)real_duration : (float)mpvCore->duration; }
+void VideoView::setArchiveTimeline(double duration,double offset,std::function<void(double)> seek) {
+    brls::cancelDelay(seeking_iter);
+    is_seeking=false;seeking_range=0;
+    archiveDuration=duration;archiveOffset=offset;archiveSeek=std::move(seek);
+    if(duration>0){setDuration(tsvitch::sec2Time(duration));setPlaybackTime(tsvitch::sec2Time(offset));setProgress(offset/duration);}
+}
+double VideoView::playbackPosition() const {
+    return archiveDuration>0 ? std::min(archiveDuration,std::max(0.0,archiveOffset+mpvCore->playback_time)) : mpvCore->playback_time;
+}
+float VideoView::getRealDuration() { return archiveDuration>0?archiveDuration:real_duration>0?real_duration:mpvCore->duration; }
 
 void VideoView::setOnEndCallback(std::function<void()> callback) { this->onEndCallback = callback; }

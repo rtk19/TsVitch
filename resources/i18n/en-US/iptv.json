@@ -38,5 +38,14 @@
   "s36": "Install update from rtk19/TsVitch",
   "s37": "An update is ready; restart the application to install it",
   "s38": "Launch the NRO from your SD card to update it",
-  "s39": "Update verified and ready. Restart to install it. Your previous NRO will be saved as .bak."
+  "s39": "Update verified and ready. Restart to install it. Your previous NRO will be saved as .bak.",
+  "archive_badge": "Replay",
+  "watch_archive": "Watch replay",
+  "watch_live": "Return to live",
+  "archive_unsupported": "This archive URL format is not supported",
+  "all_items": "All items",
+  "archive_by_time": "Choose archive by date and time",
+  "archive_date": "Archive date",
+  "archive_time": "Start time",
+  "archive_duration": "Playback duration"
 }

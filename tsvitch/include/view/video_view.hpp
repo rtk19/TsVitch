@@ -136,6 +136,8 @@ public:
 
     std::string getTitle();
 
+    void setArchiveTimeline(double duration,double offset,std::function<void(double)> seek);
+    double playbackPosition() const;
     void setDuration(const std::string& value);
 
     void setPlaybackTime(const std::string& value);
@@ -291,6 +293,8 @@ private:
     bool is_osd_lock           = false;
     bool hide_lock_button      = false;
 
+    double archiveDuration = 0, archiveOffset = 0;
+    std::function<void(double)> archiveSeek;
     int real_duration          = 0;
     time_t hintLastShowTime    = 0;
     int64_t lastPlayedPosition = POSITION_UNDEFINED;

@@ -115,8 +115,21 @@ public:
     std::string url;
     std::string description;
     std::string epgId;
+    std::string epgSource;
+    std::string contentType;
+    std::string seriesTitle;
+    std::string season;
+    std::string episode;
+    std::string catchupMode;
+    std::string catchupSource;
+    int catchupDays = 0;
+    int catchupCorrection = 0;
+    int64_t archiveStart = 0;
+    int64_t archiveEnd = 0;
+    std::string liveUrl;
+    std::string liveTitle;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LiveM3u8, id, chno, title, logo, groupTitle, url, description, epgId)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LiveM3u8, id, chno, title, logo, groupTitle, url, description, epgId, epgSource, contentType, seriesTitle, season, episode, catchupMode, catchupSource, catchupDays, catchupCorrection, archiveStart, archiveEnd, liveUrl, liveTitle)
 
 typedef std::vector<LiveM3u8> LiveM3u8ListResult;
 

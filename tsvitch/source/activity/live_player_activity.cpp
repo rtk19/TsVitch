@@ -4,6 +4,7 @@
 
 #include "activity/live_player_activity.hpp"
 #include "utils/iptv_browser.hpp"
+#include "utils/catchup.hpp"
 #include "utils/number_helper.hpp"
 #include "core/DownloadManager.hpp"
 #include "core/DownloadProgressManager.hpp"
@@ -79,6 +80,10 @@ void LiveActivity::onContentAvailable() {
         return true;
     }, true);
 
+    this->video->registerAction(brls::getStr("iptv/watch_live"),brls::BUTTON_LSB,[this](brls::View*) {
+        if(liveData.contentType=="catchup")returnToLive();else tsvitch::showProgrammeInfo(liveData);
+        return true;
+    });
     //Button R go to next channel
     this->video->registerAction("hints/next_channel"_i18n, brls::BUTTON_RB, [this](...) {
         if (!this->isAd) {
@@ -86,6 +91,7 @@ void LiveActivity::onContentAvailable() {
                 this->video->toggleOSD();
             } else {
                 if (currentChannelIndex + 1 < channelList.size()) {
+                    savePlaybackPosition();
                     this->video->stop();
 
                     currentChannelIndex++;
@@ -116,6 +122,7 @@ void LiveActivity::onContentAvailable() {
                 this->video->toggleOSD();
             } else {
                 if (currentChannelIndex > 0) {
+                    savePlaybackPosition();
                     this->video->stop();
 
                     currentChannelIndex--;
@@ -193,6 +200,7 @@ void LiveActivity::startAd(std::string adUrl) {
 
 void LiveActivity::startLive() {
     this->isAd = false;
+    video->setActionAvailable(brls::BUTTON_LSB,liveData.contentType=="catchup");
 
     // Rileva il tipo di contenuto PRIMA di caricare l'URL
     // Questo imposta correttamente isLiveMode per eventuali errori di caricamento
@@ -213,14 +221,35 @@ void LiveActivity::startLive() {
             ASYNC_RETAIN
             toggleDelayIter = brls::delay(5000, [ASYNC_TOKEN]() {
                 ASYNC_RELEASE
-                if (MPVCore::instance().isPaused()) {
+                if (MPVCore::instance().isPaused() && liveData.contentType!="catchup") {
                     MPVCore::instance().stop();
                 }
             });
         }
     });
 
-    this->video->setUrl(liveData.url);
+    archiveOffset=0;
+    if(liveData.contentType=="catchup") {
+        const auto duration=liveData.archiveEnd-liveData.archiveStart;
+        const auto saved=tsvitch::PlaybackPositionManager::getPosition(liveData.url);
+        archiveOffset=(saved>0&&saved<duration-5)?saved:0;
+        archiveOffset=tsvitch::archiveCursor(liveData,liveData.archiveStart+static_cast<int64_t>(archiveOffset))-liveData.archiveStart;
+        auto source=liveData;source.url=liveData.liveUrl;source.contentType="live";
+        this->video->setArchiveTimeline(duration,archiveOffset,[this](double seconds){seekArchive(seconds);});
+        const auto url=tsvitch::catchupUrl(source,liveData.archiveStart+static_cast<int64_t>(archiveOffset),liveData.archiveEnd,std::time(nullptr));
+        MPVCore::instance().command_async("set","end",std::to_string(duration-archiveOffset));
+        this->video->setUrl(url);
+        this->video->setOnEndCallback([this]{
+            savePlaybackPosition();
+            if(currentChannelIndex+1<channelList.size()){liveData=channelList[++currentChannelIndex];video->setTitle(liveData.title);startLive();}
+            else returnToLive();
+        });
+    } else {
+        this->video->setArchiveTimeline(0,0,{});
+        this->video->setOnEndCallback(nullptr);
+        MPVCore::instance().command_async("set","end","none");
+        this->video->setUrl(liveData.url);
+    }
 
     // Registra un listener per l'evento MPV_LOADED per ri-verificare il tipo con la durata effettiva
     // e per ripristinare la posizione salvata
@@ -231,7 +260,7 @@ void LiveActivity::startLive() {
             this->detectContentType();
 
             // Ripristina la posizione salvata solo per video on-demand (non per live stream)
-            if (!tsvitch::isLiveStream(liveData.url, liveData.title)) {
+            if (liveData.contentType!="catchup" && !tsvitch::isLiveMedia(liveData)) {
                 int64_t savedPosition = tsvitch::PlaybackPositionManager::getPosition(liveData.url);
                 if (savedPosition > 0) {
                     MPVCore::instance().seek(savedPosition);
@@ -241,6 +270,36 @@ void LiveActivity::startLive() {
         }
     });
     mpvEventRegistered = true;
+}
+
+void LiveActivity::savePlaybackPosition() {
+    if(isAd||!video||tsvitch::isLiveMedia(liveData))return;
+    const auto position=static_cast<int64_t>(video->playbackPosition());
+    const auto duration=liveData.contentType=="catchup"?liveData.archiveEnd-liveData.archiveStart:MPVCore::instance().duration;
+    if(position>0&&duration>0)tsvitch::PlaybackPositionManager::savePosition(liveData.url,position,duration);
+}
+void LiveActivity::seekArchive(double seconds) {
+    if(liveData.contentType!="catchup")return;
+    const double duration=liveData.archiveEnd-liveData.archiveStart;
+    seconds=std::max(0.0,std::min(duration-1,seconds));
+    auto source=liveData;source.url=liveData.liveUrl;source.contentType="live";
+    const auto url=tsvitch::catchupUrl(source,liveData.archiveStart+static_cast<int64_t>(seconds),liveData.archiveEnd,std::time(nullptr));
+    if(url.empty()){brls::Application::notify(brls::getStr("iptv/archive_unsupported"));return;}
+    if(MPVCore::instance().getInt("seekable") && seconds>=archiveOffset) {
+        MPVCore::instance().seek(seconds-archiveOffset);return;
+    }
+    seconds=tsvitch::archiveCursor(liveData,liveData.archiveStart+static_cast<int64_t>(seconds))-liveData.archiveStart;
+    archiveOffset=seconds;
+    video->setArchiveTimeline(duration,seconds,[this](double target){seekArchive(target);});
+    MPVCore::instance().command_async("set","end",std::to_string(duration-seconds));
+    video->setUrl(url);
+}
+void LiveActivity::returnToLive() {
+    if(liveData.liveUrl.empty())return;
+    savePlaybackPosition();
+    video->stop();liveData.url=liveData.liveUrl;liveData.title=liveData.liveTitle;
+    liveData.liveUrl.clear();liveData.contentType="live";liveData.archiveStart=liveData.archiveEnd=0;
+    video->setTitle(liveData.title);startLive();
 }
 
 void LiveActivity::detectContentType() {
@@ -294,6 +353,9 @@ void LiveActivity::detectContentType() {
     if (url.find("/movie/") != std::string::npos || url.find("/series/") != std::string::npos) isLiveStream = false;
     else if (url.find("/live/") != std::string::npos) isLiveStream = true;
 
+    if(liveData.contentType=="catchup"||liveData.contentType=="movie"||liveData.contentType=="series")isLiveStream=false;
+    else if(liveData.contentType=="live")isLiveStream=true;
+
     // Configura l'interfaccia in base al tipo di contenuto
     if (isLiveStream) {
         this->video->setLiveMode();
@@ -318,7 +380,7 @@ void LiveActivity::startDownload() {
     }
 
     // Controlla se è una live stream in corso
-    if (tsvitch::isLiveStream(this->liveData.url, this->liveData.title)) {
+    if (tsvitch::isLiveMedia(liveData)) {
         brls::Logger::warning("LiveActivity: Cannot download live streams");
         tsvitch::showLiveStreamDownloadError();
         return;
@@ -519,15 +581,7 @@ LiveActivity::~LiveActivity() {
     brls::Logger::debug("LiveActivity: delete");
 
     // Salva la posizione di riproduzione prima di uscire (solo per video on-demand)
-    if (!tsvitch::isLiveStream(liveData.url, liveData.title)) {
-        int64_t currentPosition = MPVCore::instance().playback_time;
-        int64_t totalDuration = MPVCore::instance().duration;
-
-        if (currentPosition > 0 && totalDuration > 0) {
-            tsvitch::PlaybackPositionManager::savePosition(liveData.url, currentPosition, totalDuration);
-            brls::Logger::info("LiveActivity: Saved playback position {} / {}", currentPosition, totalDuration);
-        }
-    }
+    savePlaybackPosition();
 
     // Cancella download attivo se presente
     if (hasActiveDownload && !currentDownloadId.empty()) {
@@ -538,6 +592,7 @@ LiveActivity::~LiveActivity() {
     }
 
     if (this->video) {
+        this->video->setArchiveTimeline(0,0,{});
         this->video->setOnEndCallback(nullptr);  // Annulla la callback per evitare crash
         this->video->stop();
     }

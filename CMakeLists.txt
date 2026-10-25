@@ -92,12 +92,12 @@ add_definitions(-DFONS_HASH_LUT_SIZE=4096)
 # Project Info
 project(TsVitch)
 set(VERSION_MAJOR "0")
-set(VERSION_MINOR "4")
+set(VERSION_MINOR "5")
 set(VERSION_REVISION "0")
 if (NOT VERSION_BUILD)
     set(VERSION_BUILD "0")
 endif ()
-set(PROJECT_AUTHOR "giovannimirulla")
+set(PROJECT_AUTHOR "Refael Bar")
 set(PACKAGE_NAME com.giovannimirulla.tsvitch)
 set(VITA_TITLEID "TSVITCH0")
 set(PSN_TITLE_ID "TVSI00000")
@@ -307,9 +307,6 @@ elseif (PLATFORM_PS4)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}.data)
 elseif (PLATFORM_SWITCH)
     set(BUILD_FONT_DIR ${CMAKE_BINARY_DIR}/resources/font)
-    if (GIT_TAG_VERSION)
-        string(SUBSTRING ${GIT_TAG_VERSION} 1 -1 APP_VERSION)
-    endif ()
     if (BUILTIN_NSP)
         add_dependencies(${PROJECT_NAME} nsp_forwarder.nsp)
     endif ()
@@ -318,7 +315,7 @@ elseif (PLATFORM_SWITCH)
     endif ()
     add_custom_target(${PROJECT_NAME}.nro
         DEPENDS ${PROJECT_NAME}
-        COMMAND ${NX_NACPTOOL_EXE} --create ${PROJECT_NAME} ${PROJECT_AUTHOR} ${APP_VERSION} ${PROJECT_NAME}.nacp
+        COMMAND ${NX_NACPTOOL_EXE} --create ${PROJECT_NAME} "${PROJECT_AUTHOR}" ${APP_VERSION} ${PROJECT_NAME}.nacp
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_RESOURCES} ${CMAKE_BINARY_DIR}/resources
         COMMAND ${CMAKE_COMMAND} -E remove -f ${BUILD_FONT_DIR}/*.txt ${BUILD_FONT_DIR}/switch_font.ttf
             ${BUILD_FONT_DIR}/keymap*.ttf

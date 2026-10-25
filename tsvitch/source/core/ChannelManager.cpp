@@ -11,7 +11,7 @@ using json = nlohmann::json;
 
 ChannelManager::ChannelManager(const std::filesystem::path& dataDir) : 
     file_{dataDir / "channels.json"},
-    binaryFile_{dataDir / "channels-v2.bin"},
+    binaryFile_{dataDir / "channels-v3.bin"},
     timestampFile_{dataDir / "channels_timestamp.txt"} {}
 
 ChannelManager* ChannelManager::get() {
@@ -235,15 +235,8 @@ void ChannelManager::saveBinary(const tsvitch::LiveM3u8ListResult& channels) con
                 }
             };
             
-            appendString(channel.id);
-            appendString(channel.chno);
-            appendString(channel.title);
-            appendString(channel.logo);
-            appendString(channel.groupTitle);
-            appendString(channel.url);
-            appendString(channel.description);
-            appendString(channel.epgId);
-            
+            appendString(json(channel).dump());
+
             // Scrivi il buffer al file ogni 5000 canali per non usare troppa RAM
             if ((i + 1) % 5000 == 0) {
                 out.write(buffer.data(), buffer.size());
@@ -284,7 +277,7 @@ tsvitch::LiveM3u8ListResult ChannelManager::loadBinary() const {
         uint32_t count = 0;
         in.read(reinterpret_cast<char*>(&count), sizeof(count));
         
-        if (count == 0 || count > 10000000) { // Sanity check
+        if (count == 0 || count > 1000000 || std::filesystem::file_size(binaryFile_) < 4 + static_cast<uint64_t>(count) * 6) { // Sanity check
             brls::Logger::error("ChannelManager: Invalid channel count in binary cache: {}", count);
             return channels;
         }
@@ -293,15 +286,7 @@ tsvitch::LiveM3u8ListResult ChannelManager::loadBinary() const {
         
         // Leggi ogni canale
         for (uint32_t i = 0; i < count; ++i) {
-            tsvitch::LiveM3u8 channel;
-            channel.id = readString(in);
-            channel.chno = readString(in);
-            channel.title = readString(in);
-            channel.logo = readString(in);
-            channel.groupTitle = readString(in);
-            channel.url = readString(in);
-            channel.description = readString(in);
-            channel.epgId = readString(in);
+            auto channel = json::parse(readString(in)).get<tsvitch::LiveM3u8>();
             channels.push_back(std::move(channel));
         }
         

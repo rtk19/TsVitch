@@ -1,3 +1,7 @@
+## 0.5.0
+
+Shared M3U/Xtream catalogues and archive playback, programme timelines with seek and return to live, current-programme channel cards and archive badges. Developer: Refael Bar. See [release notes](RELEASE-NOTES.md).
+
 ## 0.4.0 (rtk19 fork)
 
 Hebrew rendering, categorized Xtream VOD/live TV, player track selection, programme details and XMLTV EPG, and verified in-app updates from this fork. See [release notes](RELEASE-NOTES.md) for installation, validation and limitations.

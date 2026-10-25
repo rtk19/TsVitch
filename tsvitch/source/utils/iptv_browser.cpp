@@ -1,6 +1,9 @@
 #include <borealis/core/activity.hpp>
 #include <borealis/core/i18n.hpp>
 #include "utils/iptv_browser.hpp"
+#include "utils/playlist.hpp"
+#include "utils/programme.hpp"
+#include "tsvitch.h"
 #include "core/HistoryManager.hpp"
 #include <borealis/core/ime.hpp>
 #include "utils/xmltv.hpp"
@@ -150,7 +153,59 @@ void catalogue(bool series, const std::string& category) {
         displayCatalogue(series, data);
     });
 }
+void choosePlaylistItems(LiveM3u8ListResult items,const std::string& title) {
+    if(items.empty()){message(brls::getStr("iptv/s21"));return;}
+    std::vector<std::string> names={brls::getStr("hints/search")};
+    for(const auto& item:items)names.push_back(item.title);
+    BaseDropdown::text(title,names,[items,title](int index) {
+        if(index==0) {
+            brls::Application::getImeManager()->openForText([items,title](std::string query) {
+                LiveM3u8ListResult filtered;query=asciiLower(query);
+                for(const auto& item:items)if(asciiLower(item.title).find(query)!=std::string::npos)filtered.push_back(item);
+                choosePlaylistItems(filtered,title);
+            },brls::getStr("hints/search"),"",128,"");return;
+        }
+        --index;if(index>=0&&static_cast<size_t>(index)<items.size())play(items[index],items[index].description);
+    },-1);
+}
+void browsePlaylist(LiveM3u8ListResult items,bool series,int level) {
+    if(items.empty()){message(brls::getStr("iptv/s21"));return;}
+    if(!series&&level>0){choosePlaylistItems(items,brls::getStr("iptv/s0"));return;}
+    if(series&&level>2){
+        std::stable_sort(items.begin(),items.end(),[](const LiveM3u8& a,const LiveM3u8& b){
+            try{return std::stoi(a.episode)<std::stoi(b.episode);}catch(...){return a.title<b.title;}
+        });choosePlaylistItems(items,brls::getStr("iptv/s7"));return;
+    }
+    std::map<std::string,LiveM3u8ListResult> groups;
+    for(const auto& item:items) {
+        auto key=level==0?item.groupTitle:level==1?(item.seriesTitle.empty()?item.title:item.seriesTitle):item.season;
+        if(key.empty())key=brls::getStr("iptv/all_items");groups[key].push_back(item);
+    }
+    const bool search=series&&level==1;
+    std::vector<std::string> names;if(search)names.push_back(brls::getStr("hints/search"));
+    std::vector<LiveM3u8ListResult> values;
+    for(const auto& group:groups){names.push_back(group.first);values.push_back(group.second);}
+    BaseDropdown::text(level==0?brls::getStr("iptv/s5"):level==1?brls::getStr("iptv/s1"):brls::getStr("iptv/s6"),names,[values,series,level,items,search](int index){
+        if(search){
+            if(index==0){brls::Application::getImeManager()->openForText([items,series,level](std::string query){
+                LiveM3u8ListResult filtered;query=asciiLower(query);
+                for(const auto& item:items)if(asciiLower(item.title+" "+item.seriesTitle).find(query)!=std::string::npos)filtered.push_back(item);
+                browsePlaylist(filtered,series,level);
+            },brls::getStr("hints/search"),"",128,"");return;}
+            --index;
+        }
+        if(index>=0&&static_cast<size_t>(index)<values.size())browsePlaylist(values[index],series,level+1);
+    },-1);
+}
+void m3uCatalogue(bool series) {
+    brls::Application::notify(brls::getStr("iptv/s16"));
+    TsVitchClient::get_file_m3u8([series](LiveM3u8ListResult items){
+        items.erase(std::remove_if(items.begin(),items.end(),[series](const LiveM3u8& item){return item.contentType!=(series?"series":"movie");}),items.end());
+        browsePlaylist(items,series,0);
+    },[](const std::string&,int){brls::Application::notify(brls::getStr("iptv/s17"));});
+}
 void categories(bool series) {
+    if(ProgramConfig::instance().getIntOption(SettingItem::IPTV_MODE)==0){m3uCatalogue(series);return;}
     request(series ? "get_series_categories" : "get_vod_categories", "", [series](const Json& data) {
         if (!data.is_array() || data.empty()) { message(brls::getStr("iptv/s22")); return; }
         std::vector<std::string> names, ids;
@@ -199,6 +254,13 @@ void openIptvBrowser() {
     }, -1);
 }
 void showProgrammeInfo(const LiveM3u8& channel) {
+    if(channel.contentType=="catchup") {
+        auto live=channel;live.url=channel.liveUrl;live.title=channel.liveTitle;live.contentType="live";
+        showProgrammeInfo(live);return;
+    }
+    if(ProgramConfig::instance().getIntOption(SettingItem::IPTV_MODE)==0 && (channel.contentType=="movie"||channel.contentType=="series")) {
+        message(channel.title+"\n\n"+channel.description);return;
+    }
     if (channel.url.find("/series/") != std::string::npos) {
         message(channel.title + "\n\n" + channel.description); return;
     }
@@ -214,25 +276,19 @@ void showProgrammeInfo(const LiveM3u8& channel) {
     }
     request("get_simple_data_table", "&stream_id=" + encodeUrlComponent(channel.id), [channel](const Json& data) {
         if (!data.contains("epg_listings") || !data["epg_listings"].is_array() || data["epg_listings"].empty()) {
-            message(channel.title + "\n\n" + brls::getStr("iptv/s23")); return;
+            presentProgrammeGuide(channel,{}); return;
         }
-        std::vector<std::string> labels, summaries;
-        int current = -1;
-        const auto now = std::time(nullptr);
-        for (const auto& programme : data["epg_listings"]) {
-            auto title = decode64(field(programme, "title"));
-            auto start = field(programme, "start"), end = field(programme, "end");
-            try {
-                const auto begin = std::stoll(field(programme, "start_timestamp"));
-                const auto finish = std::stoll(field(programme, "stop_timestamp"));
-                if (begin <= now && now < finish) current = static_cast<int>(labels.size());
-            } catch (const std::exception&) {}
-            labels.push_back(start + "  " + title);
-            summaries.push_back(title + "\n" + start + " - " + end + "\n\n" + decode64(field(programme, "description")));
+        std::vector<Programme> programmes;
+        for(const auto& item:data["epg_listings"]) {
+            Programme p;p.title=decode64(field(item,"title"));p.description=decode64(field(item,"description"));
+            p.time=field(item,"start")+" - "+field(item,"end");
+            try {p.start=std::stoll(field(item,"start_timestamp"));
+                auto stop=field(item,"stop_timestamp");if(stop.empty())stop=field(item,"end_timestamp");p.end=std::stoll(stop);
+            }catch(...){}
+            programmes.push_back(p);
         }
-        BaseDropdown::text(channel.title + " - EPG", labels, [summaries](int index) {
-            if (index >= 0 && static_cast<size_t>(index) < summaries.size()) message(summaries[index]);
-        }, current);
+        std::sort(programmes.begin(),programmes.end(),[](const Programme& a,const Programme& b){return a.start<b.start;});
+        presentProgrammeGuide(channel,programmes);
     });
 }
 }

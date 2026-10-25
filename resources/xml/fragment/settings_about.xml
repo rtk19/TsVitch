@@ -57,7 +57,7 @@
                     height="60"
                     marginLeft="20"
                     cornerRadius="6"
-                    QRContent="https://github.com/giovannimirulla/TsVitch"/>
+                    QRContent="https://github.com/rtk19/TsVitch"/>
         </brls:Box>
 
         <brls:Header
@@ -72,7 +72,7 @@
                     width="50"
                     margin="10"
                     cornerRadius="50"
-                    image="@res/pictures/giovannimirulla.JPG"/>
+                    image="@res/icon/icon.jpg"/>
             <brls:Image
                     height="16"
                     width="16"

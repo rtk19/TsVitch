@@ -32,6 +32,10 @@ public:
     void retryRequestData();
 
     void startLive();
+    void seekArchive(double seconds);
+    void returnToLive();
+    void savePlaybackPosition();
+    double archiveOffset = 0;
 
     void startAd(std::string adUrl);
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "api/tsvitch/result/home_live_result.h"
 #include <algorithm>
 #include <borealis/core/i18n.hpp>
 #include <borealis/views/dialog.hpp>
@@ -33,6 +34,12 @@ inline bool isLiveStream(const std::string& url, const std::string& title) {
     }
 
     return false;
+}
+
+inline bool isLiveMedia(const LiveM3u8& media) {
+    if(media.contentType=="movie"||media.contentType=="series"||media.contentType=="catchup")return false;
+    if(media.contentType=="live")return true;
+    return isLiveStream(media.url,media.title);
 }
 
 /**

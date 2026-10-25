@@ -1,27 +1,34 @@
-# TsVitch 0.4.0 — rtk19 fork
+# TsVitch 0.5.0 — Refael Bar
 
-- Hebrew interface and bundled OFL-licensed Noto Sans Hebrew. FriBidi renders Hebrew and mixed Hebrew/Latin/numeric text after line wrapping, preserving logical text for search and saved data.
-- A VOD library tab and Y shortcut: movies and series are loaded separately, grouped by provider categories. Series open seasons and episodes. Search within the selected category.
-- Live category names resolved through the Xtream categories endpoint. Numeric/string provider IDs and URL-encoded credentials supported. Credential-bearing Xtream request URLs removed from the Xtream request logs.
-- Player audio/subtitle track selectors, automatic Hebrew/English subtitle preference, and bundled subtitle font.
-- Correct loading indicator termination after seeking, resumed playback and errors.
-- Up in the player opens programme information and EPG. Press the right stick on a channel card to inspect EPG before playback. X retains its favorite action.
-- Xtream programme schedules with decoded summaries. Optional XMLTV/XMLTV.gz source in the VOD library, matching by EPG ID, channel ID or display name. Explicit timezone offsets, chronological schedule, current programme selection, and a 30-minute guide cache.
-- On-demand metadata, episode summaries, resume playback and viewing history. Legacy history/favorites remain readable; history deduplicates by playback URL to avoid movie/live ID collisions.
-- In-app updates follow **rtk19/TsVitch** stable releases. Downloads require the exact TsVitch.nro asset, correct size, NRO signature and GitHub SHA-256 digest. Installation occurs after closing RomFS on exit, retains a .bak, and can relaunch immediately through hbloader.
-- Fork build no longer requires the original project's registration, advertising or analytics credentials. The supplied build disables those services.
-- Versioned channel cache retains EPG IDs and metadata, validates string lengths, and avoids the previous 300 MiB preallocation.
+## התקנה ושימוש
 
-## Install and controls
+חלצו את `TsVitch-Switch.zip` לשורש כרטיס הזיכרון, או החליפו את קובץ ה־NRO הקיים. הפעילו במצב יישום מלא. ההגדרות הקיימות נשמרות.
 
-Extract TsVitch-Switch.zip to the root of the SD card, or replace your existing NRO with TsVitch.nro. Start using title override / full application mode. Existing configuration is preserved.
+- התמיכה בסרטים, בסדרות, בקטגוריות, בחיפוש, בתקצירים, בשמע ובכתוביות זמינה גם במצב M3U, לפי הנתונים שנכללו ברשימה.
+- שם התוכנית המשודרת כעת מוצג בכרטיס הערוץ. תג **הקלטות** מסמן ערוץ שמצהיר על תמיכה ב־Catch-up מוכר.
+- **חץ למעלה בנגן**, או **לחיצה על הסטיק הימני בכרטיס ערוץ**, פותחים EPG. בחרו תוכנית זמינה ואז **צפייה בהקלטה**.
+- ניתן לבחור הקלטה גם לפי תאריך, שעה ומשך צפייה, ללא תלות בכך שהתוכנית מופיעה ב־EPG.
+- בניגון הקלטה, ציר ההתקדמות מייצג את כל משך התוכנית. ניתן להתקדם ולחזור באמצעות הסרגל ופקדי החיפוש של הנגן. אם הזרם אינו תומך בחיפוש מקומי, הנגן מבקש מהספק זרם מהמועד שנבחר.
+- **לחיצה על הסטיק השמאלי** מחזירה מיד לשידור החי. L/R עוברים בין ההקלטות הזמינות ברשימת התוכניות שנפתחה. בסיום הקלטה מופעלת הבאה ברשימה, ובסיום הרשימה חוזרים לשידור החי.
+- שם המפתח במידע היישום וב־NACP הוא **Refael Bar**. זכויות וקרדיטים של הפרויקט המקורי נשמרים.
 
-Choose Hebrew in Settings → App → Language and restart. Configure your Xtream server and credentials, then use the VOD tab or Y to browse movies/series. Use the player settings panel for audio and subtitle tracks. Up opens the programme panel; right-stick click on a channel card opens its schedule. To use a separate XMLTV source, enter its HTTP(S) URL in the VOD tab.
+## Implementation
 
-For future updates, use “Check and install update” in the VOD tab or the install action in the release notification. Select Restart after verification. The NRO must be launched from sdmc:/ and its directory must be writable. A .bak of the prior NRO is retained.
+- One shared playback model preserves M3U and Xtream VOD, series, EPG and archive metadata through history, favorites and the versioned channel cache.
+- M3U parsing supports quoted attributes, commas inside attributes, relative URLs, entries without tvg-id, EXTGRP, automatic XMLTV discovery from x-tvg-url/url-tvg, descriptions, explicit media types, positive VOD durations, series/season/episode attributes and SxxExx title detection.
+- M3U VOD is browsable by category, series, season and episode with in-category search. M3U movie/episode metadata is displayed directly without requiring an Xtream account.
+- Catch-up supports explicit default templates, append, shift, Flussonic/fs and Xtream/xc endpoints. Supported placeholders: {utc}, {start}, {utcend}, {end}, {duration}, {lutc}, {offset}, {Y}, {m}, {d}, {H}, {M}, {S}, ${start}, ${end}, ${duration}.
+- Archive flags, retention windows and catchup-correction are honored. Xtream archive capability/duration and the server's reported clock offset are preserved. Unknown template placeholders are rejected before playback.
+- Recorded playback uses a programme-wide timeline, resumable position, native seek where available, server-side seek otherwise, bounded playback duration and a return-to-live action. Pause keeps archive playback available.
+- XMLTV guide data is primed in the background and channel cards refresh their current-programme labels every five seconds. The guide retains available history for the preceding 31 days and upcoming programmes for 14 days, with a 30-minute feed cache.
+- Hebrew UI/rendering, audio/subtitle selectors and verified updates from rtk19/TsVitch remain available for both source modes.
 
-## Validation and limits
+## Data requirements and validation
 
-Host tests cover stable-version ordering, malformed version rejection, URL encoding including Hebrew and reserved characters, XMLTV UTC offsets and invalid dates, old-media JSON compatibility and metadata persistence. FriBidi tests cover Hebrew and mixed text. The Switch NRO is cross-compiled using the pinned devkitPro image in the build workflow.
+A playlist must contain, or identify, the data it offers. Missing VOD entries, series names, descriptions or guide programmes cannot be reconstructed from an arbitrary live-only M3U. Use media-type/type, series-title/tvg-series, season/tvg-season, episode/tvg-episode and description/tvg-description attributes where available. Configure an XMLTV URL manually when the playlist does not advertise one.
 
-Playback, rendering, track changes and update/relaunch behavior still require testing on physical Switch hardware and with a real IPTV subscription; no provider credentials were supplied. EPG/VOD data availability depends on the provider. XMLTV is limited to 96 MiB after decompression and programmes from the previous day through the next 14 days. This release provides schedule lists and programme dialogs; it does not add a timeline grid, recording, DRM support or catch-up streaming. Text editing keeps logical cursor offsets; full RTL mirroring of the application layout is not implemented. Some legacy screens retain English text.
+Catch-up requires a supported provider endpoint or catchup-source template. Availability depends on the provider's retention and subscription. Xtream server seeking may be limited to minute boundaries; the timeline reflects that position, while native seeking can be finer where supported. XMLTV alone does not enable recordings. The date/time picker uses the application's local-time clock, exposes advertised retention up to 366 days, and offers the most recent seven days when retention is unspecified. XMLTV/XMLTV.gz is limited to 96 MiB after decompression. This does not add local DVR recording or DRM support.
+
+Host tests cover M3U metadata and relative URLs, legacy saved-data compatibility, channel-cache metadata and corruption, catch-up URL construction, retention/seek boundaries, time corrections, version ordering, Hebrew encoding and bidirectional rendering. The Switch release pipeline validates NRO assets, embedded version, developer name and Hebrew resources before publishing.
+
+Playback, rendering, remote archive interoperability and in-app update/relaunch still require physical Switch testing with a real provider. No IPTV subscription credentials were supplied for this session.

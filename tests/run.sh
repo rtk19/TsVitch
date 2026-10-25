@@ -10,3 +10,5 @@ c++ -std=c++17 -Wall -Wextra -Werror -I tsvitch/include -I tsvitch/include/api -
 python3 tests/bidi_test.py
 c++ -std=c++17 -Wall -Wextra -Werror -I tests/stubs -I tsvitch/include -I tsvitch/include/api -I library/nlohmann_json/single_include tests/channel_cache_test.cpp tsvitch/source/core/ChannelManager.cpp -o "$TEST_DIR/cache"
 "$TEST_DIR/cache"
+c++ -std=c++17 -Wall -Wextra -Werror -I tsvitch/include -I tsvitch/include/api -I library/nlohmann_json/single_include tests/playlist_catchup_test.cpp -o "$TEST_DIR/playlist"
+"$TEST_DIR/playlist"

@@ -795,7 +795,7 @@ void HomeLive::downloadVideo() {
     tsvitch::LiveM3u8 channel = item->getChannel();
 
     // Controlla se è una live stream in corso
-    if (tsvitch::isLiveStream(channel.url, channel.title)) {
+    if (tsvitch::isLiveMedia(channel)) {
         brls::Logger::warning("HomeLive: Cannot download live streams");
         tsvitch::showLiveStreamDownloadError();
         return;

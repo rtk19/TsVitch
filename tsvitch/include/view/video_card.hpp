@@ -25,6 +25,8 @@ public:
     ~RecyclingGridItemLiveVideoCard() override;
 
     void setChannel(tsvitch::LiveM3u8 liveData);
+    void updateProgramme();
+    void cacheForReuse() override;
 
    tsvitch::LiveM3u8 getChannel();
 
@@ -33,6 +35,9 @@ public:
     static RecyclingGridItemLiveVideoCard* create();
 
 private:
+    size_t programmeTimer = 0;
+    BRLS_BIND(brls::Label, labelProgramme, "video/card/label/programme");
+    BRLS_BIND(brls::Label, archiveBadge, "video/card/archive");
 tsvitch::LiveM3u8 liveData;
     BRLS_BIND(TextBox, labelTitle, "video/card/label/title");
     BRLS_BIND(brls::Label, labelGroup, "video/card/label/group");

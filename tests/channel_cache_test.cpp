@@ -9,10 +9,12 @@ int main() {
     tsvitch::LiveM3u8 channel;
     channel.id = "8"; channel.title = "ערוץ"; channel.url = "https://example.test/live.ts";
     channel.epgId = "channel.il"; channel.description = "תקציר";
+    channel.catchupMode="append";channel.catchupSource="?utc={utc}";channel.catchupDays=7;
     manager.saveBinary({channel});
     const auto restored = manager.loadBinary();
     assert(restored.size() == 1 && restored[0].epgId == channel.epgId && restored[0].description == channel.description);
-    const auto path = dir / "channels-v2.bin";
+    assert(restored[0].catchupMode=="append"&&restored[0].catchupDays==7&&restored[0].catchupSource==channel.catchupSource);
+    const auto path = dir / "channels-v3.bin";
     std::filesystem::resize_file(path, 9);
     assert(manager.loadBinary().empty());
     {

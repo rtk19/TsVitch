@@ -25,14 +25,15 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - run: bash scripts/build_switch_fork.sh
+      - run: python3 tests/validate_nro.py cmake-build-switch/TsVitch.nro
       - name: Package
         run: |
           mkdir -p dist/switch/TsVitch
           cp cmake-build-switch/TsVitch.nro dist/TsVitch.nro
           cp dist/TsVitch.nro dist/switch/TsVitch/TsVitch.nro
-          cp RELEASE-NOTES.md dist/
+          cp RELEASE-NOTES.md INSTALL-he.txt LICENSE resources/font/NotoSansHebrew-OFL.txt dist/
           cd dist
-          zip -r TsVitch-Switch.zip switch RELEASE-NOTES.md
+          zip -r TsVitch-Switch.zip switch RELEASE-NOTES.md INSTALL-he.txt LICENSE NotoSansHebrew-OFL.txt
           sha256sum TsVitch.nro TsVitch-Switch.zip > SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
