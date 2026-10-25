@@ -1,3 +1,7 @@
+## 0.6.1
+
+Restore the selected VOD tile after the framework restores its activity focus, including recently watched pages whose ordering changes.
+
 ## 0.6.0
 
 Controller-accessible VOD tile navigation, no right-stick-click actions, persistent watch progress and completion, recently added/watched movie and series shelves, and automatic episode queues across seasons.

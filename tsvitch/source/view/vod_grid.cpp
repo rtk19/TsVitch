@@ -4,6 +4,7 @@
 #include "utils/number_helper.hpp"
 #include "view/auto_tab_frame.hpp"
 #include <borealis/core/activity.hpp>
+#include <borealis/core/thread.hpp>
 #include <borealis/views/cells/cell_detail.hpp>
 #include <borealis/views/applet_frame.hpp>
 #include <borealis/views/image.hpp>
@@ -62,7 +63,17 @@ public:
     explicit GridActivity(VodGridPage* page):brls::Activity(new brls::AppletFrame(page)),page(page){
     }
     void onContentAvailable() override{static_cast<brls::AppletFrame*>(getContentView())->setHeaderVisibility(brls::Visibility::GONE);}
-    void onResume() override{page->refresh();brls::Application::giveFocus(page->getDefaultFocus());}
+    void onResume() override {
+        page->refresh();
+        // Borealis restores the previous focus after onResume. Select the logical
+        // tile afterward, since recycled cells may now represent a different item.
+        auto alive=page->alive;auto* resumed=page;
+        brls::sync([alive,resumed]{
+            if(!*alive)return;
+            const auto stack=brls::Application::getActivitiesStack();
+            if(!stack.empty()&&stack.back()==resumed->getParentActivity())brls::Application::giveFocus(resumed->getDefaultFocus());
+        });
+    }
 };
 }
 VodGridPage::VodGridPage(const std::string& heading,bool embedded) {

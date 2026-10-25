@@ -1,4 +1,4 @@
-# TsVitch 0.6.0 — Refael Bar
+# TsVitch 0.6.1 — Refael Bar
 
 ## מה השתנה
 
