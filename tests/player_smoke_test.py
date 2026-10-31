@@ -40,10 +40,10 @@ with tempfile.TemporaryDirectory(prefix='tsvitch-player-') as directory:
                 body=(work/'tracks.mkv').read_bytes();content='video/x-matroska'
             else:
                 now=int(time.time())
-                programmes=[{'title':base64.b64encode(title.encode()).decode(),'description':'Programme fixture','start_timestamp':now+start,'stop_timestamp':now+end,'now_playing':flag} for title,start,end,flag in [('Past programme',-10800,-7200,0),('Wrong device-clock match',-300,300,0),('השידור הנכון לפי הספק',-7200,-3600,1),('Later programme',3600,7200,0)]]
+                programmes=[{'title':base64.b64encode(title.encode()).decode(),'description':'Programme fixture','start_timestamp':now+start,'stop_timestamp':now+end,'now_playing':flag} for title,start,end,flag in [('Past programme',-10800,-7200,0),('Wrong device-clock match',-300,300,0),('השידור הנכון לפי הספק [32]',-7200,-3600,1),('Later programme',3600,7200,0)]]
                 if action=='get_live_streams':data=[{'stream_id':i+1,'name':f'Channel {i}','category_id':'1','tv_archive':1,'tv_archive_duration':7} for i in range(50)]
                 elif action=='get_live_categories':data=[{'category_id':'1','category_name':'Fixture'}]
-                elif action in ('get_short_epg','get_simple_data_table'):data={'epg_listings':programmes}
+                elif action in ('get_short_epg','get_simple_data_table'):data={'epg_listings': [] if params.get('stream_id')==['33'] else programmes}
                 else:data={'user_info':{'auth':1,'status':'Active'},'server_info':{'timestamp_now':now,'timezone':'UTC'}}
                 body=json.dumps(data).encode();content='application/json'
             self.send_response(200);self.send_header('Content-Type',content);self.send_header('Content-Length',str(len(body)));self.send_header('Accept-Ranges','none');self.end_headers()
@@ -83,7 +83,7 @@ with tempfile.TemporaryDirectory(prefix='tsvitch-player-') as directory:
         assert result.returncode==0,(result.returncode,result.stdout[-4000:],trace[-6000:])
         assert 'PLAYER_SMOKE_PASSED' in trace,trace[-6000:]
         assert 0 in archive_requests and 1 in archive_requests,archive_requests
-        print('Player passed: Hebrew audio/subtitles, delay/background, EPG current marker, channel focus after next/close, catch-up forward/back/rapid seeks, pause/speed preservation, next-episode autoplay, NX lock/scrub/commit/cancel/speed controls, VOD resume and audio boost',flush=True)
+        print('Player passed: Hebrew audio/subtitles, delay/background, EPG current marker, channel focus after next/close, catch-up forward/back/rapid seeks, pause/speed preservation, next-episode autoplay, NX lock/scrub/commit/cancel/speed controls, VOD resume/audio boost, live/series headings and channel title reset',flush=True)
     except Exception:
         import shutil
         shutil.copy2(work/'tracks.mkv',repo/'cmake-smoke/tracks.mkv')

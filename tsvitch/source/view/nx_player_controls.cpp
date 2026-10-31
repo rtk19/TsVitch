@@ -93,6 +93,7 @@ NxPlayerControls::NxPlayerControls(VideoView *video) : host(video) {
     // Title, top-left, shown alongside the pause icon. Semi-transparent pill so
     // it reads over any frame.
     pauseTitleBox = new brls::Box();
+    pauseTitleBox->setAxis(brls::Axis::COLUMN);
     pauseTitleBox->setPositionType(brls::PositionType::ABSOLUTE);
     pauseTitleBox->setPositionTop(48.0f);
     pauseTitleBox->setPositionLeft(60.0f);
@@ -102,6 +103,7 @@ NxPlayerControls::NxPlayerControls(VideoView *video) : host(video) {
     pauseTitleBox->setVisibility(brls::Visibility::GONE);
     {
         auto *tl = titleLabel = new brls::Label();
+        tl->setId("nx/player/title-text");
         tl->setText(std::string{});
         tl->setFontSize(26.0f);
         tl->setTextColor(nvgRGB(255, 255, 255));
@@ -112,6 +114,15 @@ NxPlayerControls::NxPlayerControls(VideoView *video) : host(video) {
         // keep their natural width (the pill shrinks to fit).
         tl->setMaxWidth(760.0f);
         pauseTitleBox->addView(tl);
+        titleDetailLabel = new brls::Label();
+        titleDetailLabel->setId("nx/player/title-detail");
+        titleDetailLabel->setFontSize(23);
+        titleDetailLabel->setTextColor(nvgRGB(220, 230, 242));
+        titleDetailLabel->setSingleLine(true);
+        titleDetailLabel->setMaxWidth(760);
+        titleDetailLabel->setMarginTop(6);
+        titleDetailLabel->setVisibility(brls::Visibility::GONE);
+        pauseTitleBox->addView(titleDetailLabel);
     }
     this->addView(pauseTitleBox);
 
@@ -514,7 +525,15 @@ bool NxPlayerControls::ready() const {
     auto &core = MPVCore::instance();
     return !core.isStopped() && !core.isPositioning();
 }
-void NxPlayerControls::setTitle(const std::string &title) { titleLabel->setText(title); }
+void NxPlayerControls::setTitle(const std::string &title) {
+    if (titleLabel->getFullText() != title)
+        titleLabel->setText(title);
+}
+void NxPlayerControls::setTitleDetail(const std::string &detail) {
+    if (titleDetailLabel->getFullText() != detail)
+        titleDetailLabel->setText(detail);
+    titleDetailLabel->setVisibility(detail.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+}
 void NxPlayerControls::configure(bool isLive, const std::string &title, const std::string &next,
                                  std::function<void()> action) {
     speedPending = false;
@@ -522,6 +541,9 @@ void NxPlayerControls::configure(bool isLive, const std::string &title, const st
     bufferOverlay->setVisibility(brls::Visibility::GONE);
     live = isLive;
     setTitle(title);
+    setTitleDetail("");
+    headingRefreshAt = {};
+    revealTitlePending = true;
     seek = {};
     nextAction = std::move(action);
     nextCardSub->setText(next);
@@ -536,6 +558,8 @@ void NxPlayerControls::show(bool visible) {
     const auto v = visible ? brls::Visibility::VISIBLE : brls::Visibility::GONE;
     for (auto *view : {pauseOverlay, pauseTitleBox, optionsHint})
         view->setVisibility(v);
+    titleLabel->setAnimated(visible);
+    titleDetailLabel->setAnimated(visible);
     seekOverlay->setVisibility(visible && !live ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
     if (Clock::now() >= lockUntil)
         lockHint->setVisibility(v);
@@ -697,6 +721,16 @@ void NxPlayerControls::tick() {
     if (panelActive) {
         panelActive = false;
         show(core.isPaused() || seek.active);
+    }
+    if (now >= headingRefreshAt) {
+        headingRefreshAt = now + std::chrono::seconds(1);
+        if (onHeadingRefresh)
+            onHeadingRefresh();
+    }
+    if (revealTitlePending && ready()) {
+        revealTitlePending = false;
+        if (!controlsLocked)
+            show(true);
     }
     userPaused = core.isPaused() || seek.active;
     brls::ControllerState state{};

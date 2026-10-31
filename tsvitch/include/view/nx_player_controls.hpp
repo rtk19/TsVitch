@@ -36,8 +36,10 @@ class NxPlayerControls : public brls::Box {
     double scrubTarget() const { return seek.target; }
     bool nextShown() const { return nextCardShown; }
     void setTitle(const std::string &title);
+    void setTitleDetail(const std::string &detail);
     void flash(const std::string &text);
     std::function<void()> onBack, onProgramme;
+    std::function<void()> onHeadingRefresh;
     std::function<void(int)> onChannel;
     std::function<void(double)> onSeek;
 
@@ -46,6 +48,8 @@ class NxPlayerControls : public brls::Box {
     VideoView *host;
     bool boostApplied = false, buffering = false, speedPending = false;
     double requestedSpeed = 1;
+    bool revealTitlePending = false;
+    Clock::time_point headingRefreshAt{};
     brls::Box *bufferOverlay;
     bool live = true, controlsLocked = false, controlsShown = false, userPaused = false;
     bool nextCardShown = false, stickWasPushed = false, panelActive = false;
@@ -54,7 +58,7 @@ class NxPlayerControls : public brls::Box {
     std::function<void()> nextAction;
     brls::Box *pauseOverlay, *pauseTitleBox, *optionsHint, *lockHint, *hintPill, *nextCard, *seekOverlay,
         *seekTrack, *seekFill, *seekCursor;
-    brls::Label *titleLabel, *pillLabel, *nextCardSub, *seekCur, *seekTotal;
+    brls::Label *titleLabel, *titleDetailLabel, *pillLabel, *nextCardSub, *seekCur, *seekTotal;
     SVGImage *lockIcon;
     bool ready() const;
     bool foreground() const;

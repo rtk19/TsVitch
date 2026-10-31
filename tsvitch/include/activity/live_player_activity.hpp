@@ -34,6 +34,7 @@ class LiveActivity : public brls::Activity, public LiveDataRequest {
     void retryRequestData();
 
     void startLive();
+    void updatePlaybackHeading();
     void changeChannel(int direction);
     void seekPlayback(double position);
     void playNextEpisode();

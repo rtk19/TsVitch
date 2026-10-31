@@ -9,6 +9,7 @@
 #include "utils/watch_progress.hpp"
 #include "fragment/player_setting.hpp"
 #include "utils/vod_helpers.hpp"
+#include "utils/content_metadata.hpp"
 #include "core/HistoryManager.hpp"
 #include "utils/number_helper.hpp"
 #include "core/DownloadManager.hpp"
@@ -71,6 +72,10 @@ void LiveActivity::onContentAvailable() {
     };
     controls->onChannel = [this](int direction) { changeChannel(direction); };
     controls->onSeek = [this](double position) { seekPlayback(position); };
+    controls->onHeadingRefresh = [this, alive = playerAlive] {
+        if (*alive && !isAd && tsvitch::isLiveMedia(liveData))
+            updatePlaybackHeading();
+    };
     video->registerAction(
         brls::getStr("iptv/watch_live"), brls::BUTTON_LSB,
         [this](brls::View *) {
@@ -147,6 +152,7 @@ void LiveActivity::startLive() {
                             })
                                     : std::function<void()>{});
     }
+    updatePlaybackHeading();
     trackReloading = false;
     archiveReloading = false;
     if (tsvitch::isLiveMedia(liveData))
@@ -256,6 +262,45 @@ void LiveActivity::startLive() {
         }
     });
     mpvEventRegistered = true;
+}
+
+void LiveActivity::updatePlaybackHeading() {
+    auto *controls = video ? video->nxPlayer() : nullptr;
+    if (!controls)
+        return;
+    std::string title = liveData.title, detail;
+    if (tsvitch::isLiveMedia(liveData)) {
+        // Uses the shared async XMLTV/Xtream cache. This never waits for HTTP
+        // or asks mpv for properties on the rendering thread.
+        tsvitch::primeProgrammeGuide(liveData);
+        const auto programme = tsvitch::currentProgramme(liveData);
+        detail = programme.empty() ? brls::getStr("iptv/epg_unavailable")
+                                   : brls::getStr("iptv/on_now") + ": " + programme;
+    } else if (liveData.contentType == "series") {
+        auto media = liveData;
+        tsvitch::inferEpisodeNumbers(media);
+        if (!media.seriesTitle.empty())
+            title = media.seriesTitle;
+        auto append = [&](const std::string &part) {
+            if (!detail.empty())
+                detail += " · ";
+            detail += part;
+        };
+        if (!media.season.empty())
+            append(brls::getStr("iptv/season") + " " + media.season);
+        if (!media.episode.empty())
+            append(brls::getStr("iptv/episode") + " " + media.episode);
+        if (media.title != title && !media.title.empty())
+            append(media.title);
+    } else if (liveData.contentType == "catchup") {
+        if (!liveData.liveTitle.empty())
+            title = liveData.liveTitle;
+        detail = brls::getStr("iptv/archive_badge");
+        if (liveData.title != title)
+            detail += ": " + liveData.title;
+    }
+    video->setTitle(title);
+    controls->setTitleDetail(detail);
 }
 
 void LiveActivity::savePlaybackPosition() {
@@ -665,8 +710,8 @@ LiveActivity::~LiveActivity() {
 
 void LiveActivity::onResume() {
     installTrackRecovery();
-    if(video&&video->nxPlayer()&&!MPVCore::instance().isPositioning())
-        video->nxPlayer()->show(MPVCore::instance().isPaused()||video->nxPlayer()->scrubbing());
+    if (video && video->nxPlayer() && !MPVCore::instance().isPositioning())
+        video->nxPlayer()->show(MPVCore::instance().isPaused() || video->nxPlayer()->scrubbing());
 }
 void LiveActivity::installTrackRecovery() {
     auto &core = MPVCore::instance();

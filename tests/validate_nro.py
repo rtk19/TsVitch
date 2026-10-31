@@ -5,7 +5,7 @@ import struct
 
 parser=argparse.ArgumentParser()
 parser.add_argument('file',type=Path)
-parser.add_argument('--version',default='0.6.8')
+parser.add_argument('--version',default='0.6.9')
 parser.add_argument('--author',default='Refael Bar')
 args=parser.parse_args()
 data=args.file.read_bytes()

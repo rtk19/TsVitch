@@ -44,6 +44,12 @@ inline bool playerSmokeStep(int step) {
         std::fflush(nullptr);
     }
     auto video = [&]() { return dynamic_cast<VideoView *>(current()->getView("video")); };
+    auto heading = [&](const char *id) {
+        auto *label = video() ? dynamic_cast<brls::Label *>(video()->getView(id)) : nullptr;
+        if (!label)
+            throw std::runtime_error("Player title label missing");
+        return label->getFullText();
+    };
     auto selected = [&](const std::string &lang) {
         for (const auto &t : core.tracks())
             if (t.type == "sub" && t.language == lang && t.selected)
@@ -79,6 +85,10 @@ inline bool playerSmokeStep(int step) {
     case 1: {
         if (!video() || core.isPositioning() || core.tracks().size() < 5 || core.getDouble("time-pos") <= 0)
             return false;
+        if (heading("nx/player/title-detail").find("השידור הנכון לפי הספק [32]") == std::string::npos)
+            return false;
+        if (heading("nx/player/title-text") != "Channel 31" || !video()->nxPlayer()->shown())
+            throw std::runtime_error("Live header or automatic title reveal missing");
         activate(video(), brls::BUTTON_X);
         return true;
     }
@@ -179,6 +189,9 @@ inline bool playerSmokeStep(int step) {
     case 12:
         if (core.getString("path").find("/33.ts") == std::string::npos || core.getDouble("time-pos") <= 0)
             return false;
+        if (heading("nx/player/title-text") != "Channel 32" ||
+            heading("nx/player/title-detail") != brls::getStr("iptv/epg_unavailable"))
+            throw std::runtime_error("Channel change retained the previous programme title");
         brls::Application::popActivity();
         return true;
     case 13: {
@@ -232,14 +245,14 @@ inline bool playerSmokeStep(int step) {
         return true;
     case 18: {
         tsvitch::LiveM3u8 first;
-        first.title = "Autoplay fixture · episode 1";
+        first.title = "ההתחלה";
         first.contentType = "series";
-        first.seriesTitle = "Autoplay fixture";
+        first.seriesTitle = "סדרת בדיקה";
         first.season = "1";
         first.episode = "1";
         first.url = ProgramConfig::instance().getXtreamServerUrl() + "/series/fixture/fixture/1.mkv";
         auto second = first;
-        second.title = "Autoplay fixture · episode 2";
+        second.title = "ההמשך";
         second.episode = "2";
         second.url = ProgramConfig::instance().getXtreamServerUrl() + "/series/fixture/fixture/2.mkv";
         Intent::openLive({first, second}, 0, [] {});
@@ -252,6 +265,9 @@ inline bool playerSmokeStep(int step) {
             core.getString("path").find("/series/fixture/fixture/2.mkv") == std::string::npos ||
             core.getDouble("time-pos") <= 0)
             return false;
+        if (heading("nx/player/title-text") != "סדרת בדיקה" ||
+            heading("nx/player/title-detail").find("עונה 1 · פרק 2 · ההמשך") == std::string::npos)
+            throw std::runtime_error("Series title/episode header did not follow autoplay");
         brls::Application::popActivity();
         return true;
     case 20:
@@ -262,6 +278,9 @@ inline bool playerSmokeStep(int step) {
             return false;
         if (video()->nxPlayer()->isLive())
             throw std::runtime_error("Movie treated as live");
+        if (heading("nx/player/title-text") != "NX controls fixture" ||
+            !heading("nx/player/title-detail").empty())
+            throw std::runtime_error("Movie inherited live or episode metadata");
         video()->nxPlayer()->show(true);
         activate(video());
         return true;
