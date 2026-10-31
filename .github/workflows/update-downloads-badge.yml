@@ -1,8 +1,6 @@
 name: Update Downloads Badge
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'  # Aggiorna ogni 6 ore
   workflow_dispatch:  # Permette l'esecuzione manuale
 
 jobs:
